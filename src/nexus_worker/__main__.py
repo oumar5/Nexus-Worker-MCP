@@ -69,8 +69,8 @@ async def _run_health_check(env_file: str) -> None:
     config = Config(env_file=env_file)
     primary, fallback = create_providers_from_config(config)
 
-    print("\n🔍 Nexus-Worker-MCP — Diagnostic\n")
-    print(f"{'─' * 50}")
+    print("\n--- Nexus-Worker-MCP — Diagnostic ---\n")
+    print(f"{'-' * 50}")
 
     # Info provider principal
     info = primary.get_info()
@@ -85,11 +85,11 @@ async def _run_health_check(env_file: str) -> None:
     try:
         is_healthy = await primary.health_check()
         if is_healthy:
-            print("✅ OK")
+            print("[OK]")
         else:
-            print("❌ Échec (le modèle n'est peut-être pas disponible)")
+            print("[Échec] (le modèle n'est peut-être pas disponible)")
     except Exception as e:
-        print(f"❌ Erreur: {e}")
+        print(f"[Erreur]: {e}")
 
     # Transport
     print(f"\n  Transport: {config.transport.mode}")
@@ -113,15 +113,15 @@ async def _run_health_check(env_file: str) -> None:
         print(f"    Health:   ", end="")
         try:
             fb_healthy = await fallback.health_check()
-            print("✅ OK" if fb_healthy else "❌ Échec")
+            print("[OK]" if fb_healthy else "[Échec]")
         except Exception:
-            print("❌ Erreur")
+            print("[Erreur]")
     else:
         print(f"\n  Fallback:  Non configuré")
 
     # Providers disponibles
     print(f"\n  Providers disponibles: {', '.join(list_providers())}")
-    print(f"{'─' * 50}\n")
+    print(f"{'-' * 50}\n")
 
 
 if __name__ == "__main__":

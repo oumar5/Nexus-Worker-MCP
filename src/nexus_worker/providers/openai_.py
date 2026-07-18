@@ -39,14 +39,25 @@ class OpenAIAdapter:
 
         if config.api_version:
             # Mode Azure OpenAI (avec support APIM)
-            default_headers = {"Ocp-Apim-Subscription-Key": config.api_key} if config.api_key else None
-            self._client = AsyncAzureOpenAI(
-                azure_endpoint=config.api_base_url,
-                api_key=config.api_key,
-                api_version=config.api_version,
-                timeout=config.timeout_seconds,
-                default_headers=default_headers,
-            )
+            is_apim = "azure-api.net" in config.api_base_url
+            
+            if is_apim:
+                # L'API Gateway n'attend pas de segment /openai/, on forge l'URL avec AsyncOpenAI standard
+                base_url = f"{config.api_base_url.rstrip('/')}/deployments/{self._model}"
+                self._client = AsyncOpenAI(
+                    base_url=base_url,
+                    api_key=config.api_key,
+                    timeout=config.timeout_seconds,
+                    default_headers={"Ocp-Apim-Subscription-Key": config.api_key},
+                    default_query={"api-version": config.api_version},
+                )
+            else:
+                self._client = AsyncAzureOpenAI(
+                    azure_endpoint=config.api_base_url,
+                    api_key=config.api_key,
+                    api_version=config.api_version,
+                    timeout=config.timeout_seconds,
+                )
         else:
             # Mode OpenAI standard / Compatible
             self._client = AsyncOpenAI(
