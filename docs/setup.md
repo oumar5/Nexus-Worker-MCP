@@ -118,8 +118,24 @@ Le serveur MCP doit être déclaré dans la configuration de votre IDE. Chaque I
 **Fichier :** Configuration MCP Anti-Gravity.
 **Déclaration :** Même principe — serveur `nexus-worker` avec commande Python et arguments de module.
 
-### Claude Code
-**Méthode :** Commande CLI `claude mcp add nexus-worker -- python -m nexus_worker` ou via le fichier `.claude/mcp.json`.
+### Claude Code (CLI)
+**Méthode :** Commande CLI `claude mcp add nexus-worker -- python -m nexus_worker` ou via le fichier `.claude.json`.
+
+### Claude Desktop (Application graphique)
+**Fichier :** 
+- **macOS** : `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows** : `%APPDATA%\Claude\claude_desktop_config.json`
+**Déclaration :**
+```json
+{
+  "mcpServers": {
+    "nexus-worker": {
+      "command": "python",
+      "args": ["-m", "nexus_worker"]
+    }
+  }
+}
+```
 
 ### Cursor
 **Fichier :** `.cursor/mcp.json`.
