@@ -67,6 +67,8 @@ class NexusWorkerServer:
         # Serveur MCP
         self.mcp = FastMCP(
             "nexus-worker",
+            host=self.config.transport.host,
+            port=self.config.transport.port,
             instructions=(
                 "Ce serveur expose 8 outils pour déléguer les tâches lourdes en tokens "
                 "(génération, analyse, refactoring, explication, tests, revue de code, "
@@ -131,6 +133,7 @@ class NexusWorkerServer:
                 provider=self._get_provider(),
                 prompt_engine=self.prompt_engine,
                 metrics=self.metrics,
+                call_tracker=self.call_tracker,
                 allowed_paths=self.config.security.get_allowed_paths(),
                 max_retries=self.config.worker.max_retries,
                 max_tokens=self.config.worker.max_output_tokens,
@@ -368,6 +371,6 @@ class NexusWorkerServer:
             host = self.config.transport.host
             port = self.config.transport.port
             self.logger.info(f"Démarrage en mode HTTP sur {host}:{port}...")
-            self.mcp.run(transport="sse", host=host, port=port)
+            self.mcp.run(transport="sse")
         else:
             raise ValueError(f"Transport inconnu: '{transport}'. Valeurs possibles: stdio, http")
