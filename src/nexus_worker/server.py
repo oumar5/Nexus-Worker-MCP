@@ -1,14 +1,17 @@
 """Serveur MCP principal de Nexus-Worker-MCP.
 
-Initialise tous les services, enregistre les 5 outils MCP
+Initialise tous les services, enregistre les 8 outils MCP
 avec leurs descriptions détaillées, et gère les deux transports.
 """
 
 from __future__ import annotations
 
+import json
+
 from mcp.server.fastmcp import FastMCP
 
 from nexus_worker.config import Config
+from nexus_worker.core.cache import ResultCache
 from nexus_worker.core.errors import CallTracker, ToolRateLimitedError
 from nexus_worker.core.logger import setup_logger
 from nexus_worker.core.metrics import MetricsCollector
@@ -16,9 +19,11 @@ from nexus_worker.prompts.engine import PromptEngine
 from nexus_worker.providers.base import WorkerProvider
 from nexus_worker.providers.factory import create_providers_from_config
 from nexus_worker.tools.analyze import worker_analyze_file
+from nexus_worker.tools.document import worker_document_code
 from nexus_worker.tools.explain import worker_explain_code
 from nexus_worker.tools.generate import worker_generate_code
 from nexus_worker.tools.refactor import worker_refactor_code
+from nexus_worker.tools.review import worker_review_code
 from nexus_worker.tools.test import worker_generate_tests
 
 
@@ -52,13 +57,21 @@ class NexusWorkerServer:
         self.metrics = MetricsCollector(enabled=self.config.logging.metrics_enabled)
         self.call_tracker = CallTracker()
 
+        # Cache de résultats
+        self.cache = ResultCache(
+            enabled=self.config.cache.enabled,
+            ttl_seconds=self.config.cache.ttl_seconds,
+            max_size=self.config.cache.max_size,
+        )
+
         # Serveur MCP
         self.mcp = FastMCP(
             "nexus-worker",
             instructions=(
-                "Ce serveur expose des outils pour déléguer les tâches lourdes en tokens "
-                "(génération, analyse, refactoring, explication, tests) à un modèle Worker "
-                "économique. Utilisez ces outils au lieu de réaliser ces tâches vous-même "
+                "Ce serveur expose 8 outils pour déléguer les tâches lourdes en tokens "
+                "(génération, analyse, refactoring, explication, tests, revue de code, "
+                "documentation, métriques FinOps) à un modèle Worker économique. "
+                "Utilisez ces outils au lieu de réaliser ces tâches vous-même "
                 "pour optimiser les coûts."
             ),
         )
@@ -70,7 +83,8 @@ class NexusWorkerServer:
         self.logger.info(
             f"Serveur initialisé — Provider: {provider_info.get('provider')}, "
             f"Model: {provider_info.get('model')}, "
-            f"Transport: {self.config.transport.mode}"
+            f"Transport: {self.config.transport.mode}, "
+            f"Cache: {'activé' if self.config.cache.enabled else 'désactivé'}"
         )
 
     def _get_provider(self) -> WorkerProvider:
@@ -82,7 +96,7 @@ class NexusWorkerServer:
         return self.primary_provider
 
     def _register_tools(self) -> None:
-        """Enregistre les 5 outils MCP avec leurs descriptions détaillées."""
+        """Enregistre les 8 outils MCP avec leurs descriptions détaillées."""
 
         # ── Outil 1 : Génération de code ─────────────────────────────────
 
@@ -245,6 +259,103 @@ class NexusWorkerServer:
                 test_framework=test_framework,
                 focus_functions=focus_functions,
                 coverage_level=coverage_level,
+            )
+
+        # ── Outil 6 : Revue de code ──────────────────────────────────────
+
+        @self.mcp.tool(
+            description=(
+                "Utilise cet outil pour effectuer une revue de code structurée sur un fichier. "
+                "Le Worker analyse le code et retourne une revue JSON catégorisée "
+                "(bugs, security, performance, maintainability, style).\n\n"
+                "Exemples d'utilisation : Vérifier la sécurité d'un endpoint API, détecter "
+                "des fuites mémoire, évaluer la qualité du code avant une PR.\n\n"
+                "Paramètre 'focus' optionnel : 'security', 'performance', 'bugs', etc."
+            )
+        )
+        async def worker_review_code_tool(
+            file_path: str,
+            focus: str = "",
+        ) -> str:
+            return await worker_review_code(
+                file_path=file_path,
+                provider=self._get_provider(),
+                prompt_engine=self.prompt_engine,
+                metrics=self.metrics,
+                call_tracker=self.call_tracker,
+                allowed_paths=self.config.security.get_allowed_paths(),
+                max_retries=self.config.worker.max_retries,
+                max_tokens=self.config.worker.max_output_tokens,
+                focus=focus,
+                cache=self.cache,
+            )
+
+        # ── Outil 7 : Documentation automatique ──────────────────────────
+
+        @self.mcp.tool(
+            description=(
+                "Utilise cet outil pour générer automatiquement les docstrings et "
+                "commentaires manquants dans un fichier. Le Worker retourne le fichier "
+                "complet avec les docstrings insérées, sans modifier le code existant.\n\n"
+                "Exemples d'utilisation : Documenter un fichier legacy, préparer une PR "
+                "avec de la documentation, générer des docstrings Google Style pour Python.\n\n"
+                "Paramètre 'style' optionnel : 'google', 'numpy', 'jsdoc', etc."
+            )
+        )
+        async def worker_document_code_tool(
+            file_path: str,
+            style: str = "",
+        ) -> str:
+            return await worker_document_code(
+                file_path=file_path,
+                provider=self._get_provider(),
+                prompt_engine=self.prompt_engine,
+                metrics=self.metrics,
+                call_tracker=self.call_tracker,
+                allowed_paths=self.config.security.get_allowed_paths(),
+                max_retries=self.config.worker.max_retries,
+                max_tokens=self.config.worker.max_output_tokens,
+                style=style,
+                cache=self.cache,
+            )
+
+        # ── Outil 8 : Métriques FinOps ───────────────────────────────────
+
+        @self.mcp.tool(
+            description=(
+                "Retourne un rapport FinOps de la session en cours : tokens délégués, "
+                "coût réel du Worker, coût estimé si tu avais tout fait toi-même, "
+                "économies réalisées et statistiques du cache.\n\n"
+                "Appelle cet outil en fin de session ou à tout moment pour mesurer "
+                "l'impact financier de l'architecture Nexus.\n\n"
+                "Paramètres optionnels pour ajuster les prix (en $ par 1M tokens) :\n"
+                "- worker_input_price : Coût input du Worker (défaut: 0.15)\n"
+                "- worker_output_price : Coût output du Worker (défaut: 0.60)\n"
+                "- brain_input_price : Coût input du Cerveau (défaut: 5.00)\n"
+                "- brain_output_price : Coût output du Cerveau (défaut: 30.00)"
+            )
+        )
+        async def worker_get_metrics_tool(
+            worker_input_price: float = 0.15,
+            worker_output_price: float = 0.60,
+            brain_input_price: float = 5.00,
+            brain_output_price: float = 30.00,
+        ) -> str:
+            finops = self.metrics.get_finops_summary(
+                worker_input_price_per_1m=worker_input_price,
+                worker_output_price_per_1m=worker_output_price,
+                brain_input_price_per_1m=brain_input_price,
+                brain_output_price_per_1m=brain_output_price,
+            )
+            cache_stats = self.cache.stats()
+            return json.dumps(
+                {
+                    "status": "success",
+                    "finops": finops,
+                    "cache": cache_stats,
+                    "tools_detail": self.metrics.get_summary().get("tools", {}),
+                },
+                ensure_ascii=False,
             )
 
     def run(self) -> None:

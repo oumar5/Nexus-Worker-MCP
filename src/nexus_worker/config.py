@@ -61,6 +61,14 @@ class LoggingConfig(BaseSettings):
     metrics_enabled: bool = Field(default=True, alias="METRICS_ENABLED")
 
 
+class CacheConfig(BaseSettings):
+    """Configuration du cache de résultats en mémoire."""
+
+    enabled: bool = Field(default=True, alias="CACHE_ENABLED")
+    ttl_seconds: int = Field(default=3600, alias="CACHE_TTL_SECONDS")
+    max_size: int = Field(default=256, alias="CACHE_MAX_SIZE")
+
+
 class Config:
     """Configuration globale du serveur Nexus-Worker-MCP.
 
@@ -85,6 +93,7 @@ class Config:
         self.transport = TransportConfig()
         self.security = SecurityConfig()
         self.logging = LoggingConfig()
+        self.cache = CacheConfig()
 
     @property
     def prompt_templates_dir(self) -> Path | None:

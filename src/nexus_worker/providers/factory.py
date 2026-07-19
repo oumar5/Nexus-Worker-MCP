@@ -11,6 +11,7 @@ from typing import Any
 from nexus_worker.config import Config, WorkerConfig
 from nexus_worker.providers.anthropic_ import AnthropicAdapter
 from nexus_worker.providers.base import WorkerProvider
+from nexus_worker.providers.gemini_ import GeminiAdapter
 from nexus_worker.providers.ollama_ import OllamaAdapter
 from nexus_worker.providers.openai_ import OpenAIAdapter
 
@@ -20,6 +21,7 @@ _REGISTRY: dict[str, type] = {
     "openai": OpenAIAdapter,
     "anthropic": AnthropicAdapter,
     "ollama": OllamaAdapter,
+    "gemini": GeminiAdapter,
 }
 
 
