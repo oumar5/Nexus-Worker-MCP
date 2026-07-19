@@ -12,7 +12,7 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 
 ### Description (vue par le Cerveau)
 
-> *"Utilise cet outil OBLIGATOIREMENT lorsque tu dois générer du code dépassant 30 lignes. Ne génère JAMAIS de longs blocs de code toi-même — délègue à cet outil. Fournis une instruction technique détaillée incluant : le langage, le framework, les conventions de nommage, et le comportement attendu. L'outil retournera le code généré prêt à l'emploi."*
+> *"Utilise cet outil OBLIGATOIREMENT lorsque tu dois générer du code dépassant 30 lignes. Ne génère JAMAIS de longs blocs de code toi-même — délègue à cet outil. Fournis une instruction technique détaillée incluant : le langage, le framework, les conventions de nommage, et le comportement attendu."*
 >
 > **Exemples d'utilisation :** Créer une route API, un composant UI, un script de migration, un fichier de config.
 >
@@ -29,7 +29,7 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 
 ### Retour
 
-L'outil retourne un objet contenant : le statut (`success` ou `error`), le code généré, le langage détecté, les tokens consommés (input et output), et le modèle utilisé.
+`status`, `code`, `language`, `tokens_used`, `model`
 
 ---
 
@@ -39,9 +39,9 @@ L'outil retourne un objet contenant : le statut (`success` ou `error`), le code 
 
 ### Description (vue par le Cerveau)
 
-> *"Utilise cet outil lorsque tu as besoin de comprendre le contenu d'un fichier que tu n'as pas encore lu, ou lorsque tu dois extraire des informations spécifiques d'un fichier volumineux. L'outil lit le fichier et utilise un modèle secondaire pour en extraire les informations que tu demandes."*
+> *"Utilise cet outil lorsque tu as besoin de comprendre le contenu d'un fichier que tu n'as pas encore lu, ou lorsque tu dois extraire des informations spécifiques d'un fichier volumineux."*
 >
-> **Exemples d'utilisation :** "Quelles routes sont définies ?", "Y a-t-il des failles de sécurité ?", "Résume la logique métier", "Liste les dépendances importées".
+> **Exemples d'utilisation :** "Quelles routes sont définies ?", "Y a-t-il des failles de sécurité ?", "Résume la logique métier".
 >
 > **NE PAS utiliser pour :** Des fichiers déjà dans ton contexte, ou des fichiers très courts (< 50 lignes).
 
@@ -55,7 +55,7 @@ L'outil retourne un objet contenant : le statut (`success` ou `error`), le code 
 
 ### Retour
 
-L'outil retourne : le statut, l'analyse condensée, les informations sur le fichier (chemin, nombre total de lignes), les tokens consommés, et le modèle utilisé.
+`status`, `analysis`, `file_info`, `tokens_used`, `model`
 
 ---
 
@@ -67,7 +67,7 @@ L'outil retourne : le statut, l'analyse condensée, les informations sur le fich
 
 > *"Utilise cet outil pour appliquer des modifications substantielles sur du code existant : renommage massif, restructuration, ajout de gestion d'erreurs, migration de patterns, ou conversion entre frameworks."*
 >
-> **Exemples d'utilisation :** Convertir des callbacks en async/await, ajouter du try/catch partout, renommer des variables, migrer des imports CommonJS vers ES Modules, appliquer un design pattern.
+> **Exemples d'utilisation :** Convertir des callbacks en async/await, ajouter du try/catch partout, migrer des imports.
 >
 > **NE PAS utiliser pour :** Changer une seule ligne, ou du refactoring inter-fichiers nécessitant une vision transversale.
 
@@ -82,7 +82,7 @@ L'outil retourne : le statut, l'analyse condensée, les informations sur le fich
 
 ### Retour
 
-L'outil retourne : le statut, le code refactoré, un résumé des changements effectués, les tokens consommés, et le modèle utilisé.
+`status`, `refactored_code`, `file_info`, `tokens_used`, `model`
 
 ---
 
@@ -92,7 +92,7 @@ L'outil retourne : le statut, le code refactoré, un résumé des changements ef
 
 ### Description (vue par le Cerveau)
 
-> *"Utilise cet outil lorsque tu as besoin de comprendre la logique d'un fichier ou d'un bloc de code avant de prendre une décision architecturale. Plutôt que de lire et analyser un gros fichier toi-même (coûteux en tokens), délègue l'explication à cet outil."*
+> *"Utilise cet outil lorsque tu as besoin de comprendre la logique d'un fichier ou d'un bloc de code avant de prendre une décision architecturale."*
 >
 > **Exemples d'utilisation :** Comprendre un algorithme complexe, documenter une fonction legacy, identifier les effets de bord avant un refactoring.
 
@@ -106,7 +106,7 @@ L'outil retourne : le statut, le code refactoré, un résumé des changements ef
 
 ### Retour
 
-L'outil retourne une explication structurée contenant : l'objectif du code, le flux d'exécution, les dépendances identifiées, les points d'attention, les tokens consommés, et le modèle utilisé.
+`status`, `explanation`, `file_info`, `tokens_used`, `model`
 
 ---
 
@@ -131,13 +131,124 @@ L'outil retourne une explication structurée contenant : l'objectif du code, le 
 
 ### Retour
 
-L'outil retourne : le statut, le code de test complet, le nombre de tests générés, les domaines de couverture (happy path, edge cases, error handling), les tokens consommés, et le modèle utilisé.
+`status`, `test_code`, `source_file`, `test_framework`, `tokens_used`, `model`
+
+---
+
+## 6. `worker_review_code` ✨ Nouveau
+
+**Objectif :** Effectuer une revue de code structurée et catégorisée.
+
+### Description (vue par le Cerveau)
+
+> *"Utilise cet outil pour effectuer une revue de code structurée sur un fichier. Le Worker analyse le code et retourne une revue JSON catégorisée : bugs, security, performance, maintainability, style."*
+>
+> **Exemples d'utilisation :** Vérifier la sécurité d'un endpoint API, détecter des fuites mémoire, évaluer la qualité du code avant une PR.
+>
+> **Paramètre `focus` optionnel :** `"security"`, `"performance"`, `"bugs"`, etc.
+
+### Paramètres
+
+| Paramètre | Type | Requis | Description |
+|---|---|---|---|
+| `file_path` | string | ✅ | Chemin du fichier à réviser |
+| `focus` | string | ❌ | Aspect spécifique à évaluer (`"security"`, `"performance"`, etc.) |
+
+### Retour
+
+```json
+{
+  "status": "success",
+  "review": {
+    "summary": "...",
+    "bugs": [{"line": 42, "severity": "critical", "message": "..."}],
+    "security": [...],
+    "performance": [...],
+    "maintainability": [...],
+    "style": [...]
+  },
+  "file_info": {...},
+  "tokens_used": {...},
+  "model": "..."
+}
+```
+
+> **Note :** Les résultats sont mis en cache (TTL 1h). Un deuxième appel sur le même fichier non modifié est instantané et gratuit.
+
+---
+
+## 7. `worker_document_code` ✨ Nouveau
+
+**Objectif :** Générer automatiquement les docstrings et commentaires manquants.
+
+### Description (vue par le Cerveau)
+
+> *"Utilise cet outil pour générer automatiquement les docstrings et commentaires manquants dans un fichier. Le Worker retourne le fichier complet avec les docstrings insérées, sans modifier le code existant."*
+>
+> **Exemples d'utilisation :** Documenter un fichier legacy, préparer une PR avec de la documentation, générer des docstrings Google Style pour Python.
+>
+> **Paramètre `style` optionnel :** `"google"`, `"numpy"`, `"jsdoc"`, etc.
+
+### Paramètres
+
+| Paramètre | Type | Requis | Description |
+|---|---|---|---|
+| `file_path` | string | ✅ | Chemin du fichier à documenter |
+| `style` | string | ❌ | Style de docstring (`"google"`, `"numpy"`, `"jsdoc"`) |
+
+### Retour
+
+`status`, `documented_code`, `file_info`, `tokens_used`, `model`
+
+> **Note :** Les résultats sont mis en cache (TTL 1h).
+
+---
+
+## 8. `worker_get_metrics` ✨ Nouveau
+
+**Objectif :** Obtenir un rapport FinOps de la session en cours.
+
+### Description (vue par le Cerveau)
+
+> *"Retourne un rapport FinOps de la session en cours : tokens délégués, coût réel du Worker, coût estimé si tu avais tout fait toi-même, économies réalisées et statistiques du cache."*
+>
+> Appelle cet outil en fin de session ou à tout moment pour mesurer l'impact financier de l'architecture Nexus.
+
+### Paramètres
+
+| Paramètre | Type | Requis | Description |
+|---|---|---|---|
+| `worker_input_price` | float | ❌ | Prix input Worker / 1M tokens (défaut: 0.15 — GPT-4o-mini) |
+| `worker_output_price` | float | ❌ | Prix output Worker / 1M tokens (défaut: 0.60) |
+| `brain_input_price` | float | ❌ | Prix input Cerveau / 1M tokens (défaut: 5.00 — GPT-5.6 Sol) |
+| `brain_output_price` | float | ❌ | Prix output Cerveau / 1M tokens (défaut: 30.00) |
+
+### Retour (exemple)
+
+```json
+{
+  "status": "success",
+  "finops": {
+    "total_tokens_delegated": 45230,
+    "total_calls": 8,
+    "cost_worker_usd": 0.0043,
+    "cost_if_brain_usd": 0.0872,
+    "savings_usd": 0.0829,
+    "savings_percent": 95.1,
+    "reduction_factor": 20.0,
+    "message": "En déléguant 8 appel(s) au Worker, vous avez économisé ~0.0829 $ (95% d'économie, facteur 20x)."
+  },
+  "cache": {
+    "hits": 3,
+    "misses": 5,
+    "hit_rate_percent": 37.5
+  }
+}
+```
 
 ---
 
 ## Matrice de décision pour le Cerveau
-
-Ce tableau résume quand le Cerveau doit utiliser chaque outil vs agir seul :
 
 | Situation | Action du Cerveau |
 |---|---|
@@ -146,7 +257,9 @@ Ce tableau résume quand le Cerveau doit utiliser chaque outil vs agir seul :
 | Modifier > 20 lignes de code | → `worker_refactor_code` |
 | Comprendre un fichier inconnu | → `worker_explain_code` |
 | Écrire des tests | → `worker_generate_tests` |
+| Évaluer la qualité / sécurité du code | → `worker_review_code` |
+| Ajouter des docstrings | → `worker_document_code` |
+| Mesurer les économies de la session | → `worker_get_metrics` |
 | Corriger 1-5 lignes | → **Agir seul** |
 | Décision d'architecture | → **Agir seul** |
 | Planification du travail | → **Agir seul** |
-| Réponse à une question simple | → **Agir seul** |

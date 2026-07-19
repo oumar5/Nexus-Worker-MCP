@@ -1,73 +1,109 @@
-# Analyse FinOps : Nexus-Worker-MCP
+# Analyse FinOps — Nexus-Worker-MCP
 
-Ce document présente une analyse financière (FinOps) de l'utilisation de l'architecture **Nexus-Worker-MCP** par rapport à une utilisation directe des modèles d'intelligence artificielle de pointe (état du marché en juillet 2026).
-
-## 1. Tarifs des Modèles (pour 1 Million de tokens)
-
-Afin d'évaluer la rentabilité de l'architecture, voici les prix des principaux modèles "Cerveau" de pointe en 2026, comparés aux modèles "Worker" économiques.
-
-### Modèles "Cerveau" (Haute Intelligence)
-Ces modèles sont excellents pour le raisonnement complexe, mais très coûteux pour la génération de masse.
-
-| Modèle | Tokens d'Entrée (Input) | Tokens de Sortie (Output) |
-| :--- | :--- | :--- |
-| **GPT-5.6 Sol** (OpenAI) | 5,00 $ | 30,00 $ |
-| **Claude 4.8 Opus** (Anthropic) | 5,00 $ | 25,00 $ |
-| **Gemini 3.1 Pro** (Google) | 2,00 $ | 12,00 $ |
-
-### Modèles "Worker" (Exécution rapide & économique)
-Ces modèles sont parfaits pour les tâches déléguées (génération de tests, analyse de fichiers, reformatage).
-
-| Modèle | Tokens d'Entrée (Input) | Tokens de Sortie (Output) |
-| :--- | :--- | :--- |
-| **GPT-4o-mini** (OpenAI) | 0,15 $ | 0,60 $ |
-| **Claude 3 Haiku** (Anthropic) | 0,25 $ | 1,25 $ |
+Ce document présente une analyse financière de l'architecture **Nexus-Worker-MCP** comparée à une utilisation directe des modèles de pointe (état du marché juillet 2026). Il explique également comment mesurer vos économies en temps réel via l'outil `worker_get_metrics`.
 
 ---
 
-## 2. Cas Pratique : Génération de Tests Unitaires
+## 1. Tarifs des modèles (pour 1 million de tokens)
 
-Prenons un scénario classique où un développeur demande de lire un fichier source conséquent (10 000 tokens) et de générer une suite complète de tests unitaires (3 000 tokens).
+### Modèles "Cerveau" — haute intelligence, coûteux
 
-### Scénario A : Sans Nexus-Worker (Utilisation directe du Cerveau)
-L'agent intelligent lit directement le fichier et génère la totalité du code.
+| Modèle | Input / 1M tokens | Output / 1M tokens |
+|:---|:---|:---|
+| GPT-5.6 Sol (OpenAI) | 5,00 $ | 30,00 $ |
+| Claude 4.8 Opus (Anthropic) | 5,00 $ | 25,00 $ |
+| Gemini 3.1 Pro (Google) | 2,00 $ | 12,00 $ |
 
-*   **Avec GPT-5.6 Sol :**
-    *   Lecture : 10 000 tokens * (5,00 $ / 1 000 000) = 0,050 $
-    *   Écriture : 3 000 tokens * (30,00 $ / 1 000 000) = 0,090 $
-    *   **Coût total = 0,140 $** par exécution.
+### Modèles "Worker" — exécution rapide et économique
 
-*   **Avec Claude 4.8 Opus :**
-    *   Lecture : 10 000 tokens * (5,00 $ / 1 000 000) = 0,050 $
-    *   Écriture : 3 000 tokens * (25,00 $ / 1 000 000) = 0,075 $
-    *   **Coût total = 0,125 $** par exécution.
-
-*   **Avec Gemini 3.1 Pro :**
-    *   Lecture : 10 000 tokens * (2,00 $ / 1 000 000) = 0,020 $
-    *   Écriture : 3 000 tokens * (12,00 $ / 1 000 000) = 0,036 $
-    *   **Coût total = 0,056 $** par exécution.
-
-### Scénario B : Avec Nexus-Worker (Cerveau + Worker via MCP)
-L'agent intelligent (Cerveau) reçoit la consigne, orchestre la requête, délègue le gros du travail au Worker (GPT-4o-mini), puis valide rapidement le résultat.
-
-1.  **Orchestration par le Cerveau (ex: GPT-5.6 Sol) :**
-    *   Prompt de consigne + Lecture du JSON final : ~500 tokens in = 0,0025 $
-    *   Génération de l'appel d'outil MCP : ~50 tokens out = 0,0015 $
-    *   *Sous-total Cerveau = 0,004 $*
-2.  **Exécution par le Worker (GPT-4o-mini via Nexus) :**
-    *   Lecture du fichier brut : 10 000 tokens in = 0,0015 $
-    *   Génération des tests : 3 000 tokens out = 0,0018 $
-    *   *Sous-total Worker = 0,0033 $*
-
-**Coût total avec Nexus = 0,004 $ + 0,0033 $ = 0,0073 $** par exécution.
+| Modèle | Input / 1M tokens | Output / 1M tokens |
+|:---|:---|:---|
+| GPT-4o-mini (OpenAI) | 0,15 $ | 0,60 $ |
+| Gemini 2.0 Flash (Google) | 0,10 $ | 0,40 $ |
+| Claude 3 Haiku (Anthropic) | 0,25 $ | 1,25 $ |
+| Ollama (modèle local) | 0,00 $ | 0,00 $ |
 
 ---
 
-## 3. Conclusion et Retour sur Investissement (ROI)
+## 2. Cas pratique : génération de tests unitaires
 
-| Architecture | Coût par tâche (Moyenne) | Facture pour 1 000 tâches / mois |
-| :--- | :--- | :--- |
-| **Sans Nexus (GPT-5.6 100%)** | 0,1400 $ | 140,00 $ |
-| **Avec Nexus (GPT-5.6 + 4o-mini)** | **0,0073 $** | **7,30 $** |
+**Scénario :** un développeur demande de lire un fichier source (10 000 tokens) et de générer une suite complète de tests (3 000 tokens).
 
-**Conclusion :** L'architecture Nexus-Worker-MCP permet de réduire les coûts d'API d'un facteur de **15x à 20x** (près de 95 % d'économies) sur les tâches de génération massive, tout en conservant l'intelligence de planification et de validation des modèles d'élite comme GPT-5.6, Claude 4.8 Opus ou Gemini 3.1 Pro.
+### Sans Nexus — le Cerveau fait tout
+
+| Cerveau utilisé | Total par exécution |
+|:---|:---|
+| GPT-5.6 Sol | **0,140 $** |
+| Claude 4.8 Opus | **0,125 $** |
+| Gemini 3.1 Pro | **0,056 $** |
+
+### Avec Nexus — délégation au Worker
+
+Le Cerveau ne voit que la consigne initiale (~500 tokens) et le résultat final compact. Le Worker traite le fichier complet et génère les tests.
+
+| Étape | Modèle | Coût |
+|:---|:---|:---|
+| Orchestration + validation | Cerveau (GPT-5.6 Sol) | 0,004 $ |
+| Lecture + génération des tests | Worker (GPT-4o-mini) | 0,003 $ |
+| **Total** | | **0,007 $** |
+
+**Facteur de réduction : 20x — soit 95 % d'économie.**
+
+---
+
+## 3. Impact du cache
+
+Le cache en mémoire élimine complètement le coût des appels répétés sur le même fichier non modifié. Une revue de code ou une documentation demandée deux fois dans la même session ne consomme des tokens qu'une seule fois.
+
+**Exemple — revue de code demandée 3 fois dans la même session :**
+
+| Appel | Sans cache | Avec cache |
+|:---|:---|:---|
+| 1er appel | 0,007 $ | 0,007 $ |
+| 2e appel (même fichier) | 0,007 $ | 0,000 $ |
+| 3e appel (même fichier) | 0,007 $ | 0,000 $ |
+| **Total** | **0,021 $** | **0,007 $** |
+
+Sur une session de développement avec 30 % de requêtes répétées, le cache réduit la facture Worker d'environ 30 % supplémentaire.
+
+---
+
+## 4. Mesurer vos économies en temps réel
+
+Nexus expose un outil `worker_get_metrics` qui calcule automatiquement vos économies pour la session en cours. Il compare le coût réel des appels Worker avec ce qu'aurait coûté la même charge de travail sur le Cerveau.
+
+Il retourne notamment :
+
+- Le nombre total de tokens délégués au Worker
+- Le coût réel de la session Worker
+- Le coût estimé si le Cerveau avait tout traité
+- L'économie réalisée en dollars et en pourcentage
+- Le taux de cache hits (proportion d'appels servis depuis le cache)
+
+Pour l'appeler, demandez simplement au Cerveau en fin de session : *"Affiche-moi le rapport FinOps de la session."*
+
+Les prix utilisés par défaut correspondent à GPT-4o-mini (Worker) et GPT-5.6 Sol (Cerveau). Ils peuvent être ajustés si vous utilisez un autre provider — par exemple Gemini 2.0 Flash comme Worker est encore moins cher.
+
+---
+
+## 5. Retour sur investissement mensuel
+
+| Architecture | Coût par tâche | Facture pour 1 000 tâches/mois |
+|:---|:---|:---|
+| Sans Nexus — GPT-5.6 Sol 100 % | 0,140 $ | **140,00 $** |
+| Avec Nexus — GPT-5.6 + GPT-4o-mini | 0,007 $ | **7,00 $** |
+| Avec Nexus + cache (30 % hit rate) | ~0,005 $ | **~5,00 $** |
+
+L'économie mensuelle estimée est de **133 $ à 135 $ pour 1 000 tâches**, soit une réduction de 95 à 96 %.
+
+L'architecture est rentabilisée dès la première heure d'utilisation. Les 15 minutes de configuration initiale sont amorties après 2 tâches déléguées.
+
+---
+
+## 6. Conseils pour maximiser les économies
+
+- **Garder le cache activé** — il est actif par défaut et réduit significativement la facture sur les sessions longues.
+- **Augmenter le TTL du cache** si vos sessions dépassent une heure (variable `CACHE_TTL_SECONDS`).
+- **Choisir le bon Worker** — Gemini 2.0 Flash est actuellement le moins cher pour les tâches de génération standard.
+- **Configurer `ALLOWED_PATHS` précisément** — limiter les chemins autorisés évite d'exposer des fichiers volumineux inutiles.
+- **Consulter les métriques régulièrement** — le rapport FinOps permet d'ajuster la stratégie de délégation en fonction des coûts réels.

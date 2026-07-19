@@ -5,7 +5,7 @@
 - **Python** 3.11 ou supérieur
 - **pip** (gestionnaire de paquets Python)
 - **Git** (pour cloner le dépôt)
-- Une **clé API** pour au moins un fournisseur LLM (OpenAI, Azure, Anthropic, ou un modèle local via Ollama)
+- Une **clé API** pour au moins un fournisseur LLM (OpenAI, Azure, Anthropic, Google Gemini, ou un modèle local via Ollama)
 
 ---
 
@@ -38,10 +38,10 @@ Copiez le fichier `.env.example` vers `.env` et remplissez vos valeurs. Les vari
 
 | Variable | Description | Exemple |
 |---|---|---|
-| `WORKER_PROVIDER` | Fournisseur à utiliser | `openai`, `anthropic`, `ollama`, `bedrock`, `custom` |
+| `WORKER_PROVIDER` | Fournisseur à utiliser | `openai`, `anthropic`, `ollama`, `gemini` |
 | `WORKER_API_BASE_URL` | URL de l'endpoint API | `https://api.openai.com/v1` |
 | `WORKER_API_KEY` | Clé d'authentification API | `sk-...` |
-| `WORKER_MODEL_NAME` | Nom du modèle déployé | `gpt-4o` |
+| `WORKER_MODEL_NAME` | Nom du modèle déployé | `gpt-4o-mini` |
 | `WORKER_API_VERSION` | Version API (Azure uniquement) | `2024-12-01-preview` |
 
 #### Configuration du serveur MCP
@@ -77,18 +77,29 @@ Copiez le fichier `.env.example` vers `.env` et remplissez vos valeurs. Les vari
 | `LOG_FILE` | Fichier de log | `nexus_worker.log` |
 | `METRICS_ENABLED` | Activer les métriques | `true` |
 
+#### Cache (optionnel)
+
+| Variable | Description | Valeur par défaut |
+|---|---|---|
+| `CACHE_ENABLED` | Active le cache en mémoire | `true` |
+| `CACHE_TTL_SECONDS` | Durée de vie d'une entrée en secondes | `3600` (1h) |
+| `CACHE_MAX_SIZE` | Nombre max d'entrées dans le cache | `256` |
+
 ---
 
 ## Exemples de configuration par fournisseur
 
 ### OpenAI standard
-Définir `WORKER_PROVIDER=openai`, l'URL `https://api.openai.com/v1`, votre clé API, et le modèle `gpt-4o`.
+Définir `WORKER_PROVIDER=openai`, l'URL `https://api.openai.com/v1`, votre clé API, et le modèle `gpt-4o-mini`.
 
 ### Azure OpenAI
 Définir `WORKER_PROVIDER=openai`, l'URL de votre instance Azure (`https://votre-instance.openai.azure.com/`), votre clé Azure, le nom de votre deployment, et la version API.
 
+### Google Gemini (nouveau)
+Définir `WORKER_PROVIDER=gemini`, votre clé Google AI Studio dans `WORKER_API_KEY`, et le modèle `gemini-2.0-flash`. Aucune `WORKER_API_BASE_URL` nécessaire.
+
 ### Ollama (modèle local)
-Définir `WORKER_PROVIDER=ollama`, l'URL locale (`http://localhost:11434`), et le modèle souhaité (ex: `codellama:34b`). Pas de clé API requise.
+Définir `WORKER_PROVIDER=ollama`, l'URL locale (`http://localhost:11434`), et le modèle souhaité (ex: `qwen2.5-coder:7b`). Pas de clé API requise.
 
 ### Anthropic Claude
 Définir `WORKER_PROVIDER=anthropic`, l'URL `https://api.anthropic.com`, votre clé Anthropic, et le modèle souhaité.
@@ -101,7 +112,7 @@ Le serveur MCP doit être déclaré dans la configuration de votre IDE. Chaque I
 
 ### VS Code (GitHub Copilot / Extensions MCP)
 **Fichier :** `.vscode/mcp.json` ou settings utilisateur.
-**Déclaration :** Ajoutez un serveur nommé `nexus-worker` avec la commande `python`, les arguments `["-m", "nexus_worker"]`, et le répertoire de travail pointant vers le projet. Les variables d'environnement peuvent être passées directement dans la config ou lues depuis le `.env`.
+**Déclaration :** Ajoutez un serveur nommé `nexus-worker` avec la commande `python`, les arguments `["-m", "nexus_worker"]`, et le répertoire de travail pointant vers le projet. Le bon adaptateur est instancé **automatiquement** selon la variable d'environnement `WORKER_PROVIDER`. Le système maintient un registre interne qui associe chaque nom de provider à sa classe d'adaptateur. Si le nom est inconnu, une erreur explicite est levée avec la liste des valeurs possibles : `openai`, `anthropic`, `ollama`, `gemini`.
 
 ### Anti-Gravity (Gemini)
 **Fichier :** Configuration MCP Anti-Gravity.

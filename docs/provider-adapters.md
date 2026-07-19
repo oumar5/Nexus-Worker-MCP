@@ -13,16 +13,15 @@ Le système repose sur une **interface commune** (`WorkerProvider`) que chaque a
                     │   + get_info()       │
                     └──────────┬───────────┘
                                │
-              ┌────────────────┼────────────────┐
-              │                │                │
-     ┌────────▼──────┐ ┌──────▼───────┐ ┌──────▼───────┐
-     │ OpenAIAdapter │ │AnthropicAdpt │ │ OllamaAdaptr │
-     │               │ │              │ │              │
-     │ OpenAI        │ │ Claude API   │ │ Local models │
-     │ Azure OpenAI  │ │              │ │ vLLM         │
-     │ Together      │ │              │ │ LM Studio    │
-     │ Groq          │ │              │ │              │
-     └───────────────┘ └──────────────┘ └──────────────┘
+          ┌────────────────┬────────────────┬──────────────┐
+          │                │                │              │
+ ┌────────▼──────┐ ┌──────▼───────┐ ┌──────▼─────┐ ┌──────▼───────┐
+ │ OpenAIAdapter │ │AnthropicAdpt │ │GeminiAdaptr │ │ OllamaAdaptr │
+ │               │ │              │ │              │ │              │
+ │ OpenAI        │ │ Claude API   │ │ Google AI    │ │ Local models │
+ │ Azure OpenAI  │ │              │ │ Studio       │ │ vLLM         │
+ │ Groq          │ │              │ │ Vertex AI    │ │ LM Studio    │
+ └───────────────┘ └──────────────┘ └──────────────┘ └──────────────┘
 ```
 
 ---
@@ -85,28 +84,25 @@ Quel que soit le fournisseur, la réponse est toujours normalisée dans un forma
 **Particularités :**
 - Pas de clé API requise (modèle local)
 - Le health check vérifie que le modèle est bien chargé en mémoire
-- Peut être plus lent mais coût = 0€
+- Coût = 0 €
 
-### 4. AWS Bedrock Adapter
+### 4. Google Gemini Adapter ✨ Nouveau
 
-**Compatible avec :** Tous les modèles disponibles sur Amazon Bedrock.
+**Compatible avec :** Google AI Studio, Vertex AI.
 
-**Configuration :** Définir `WORKER_PROVIDER=bedrock` avec le nom du modèle et la région AWS. Les credentials sont lues automatiquement via le mécanisme standard AWS (profil, variables d'environnement, ou rôle IAM).
+**Configuration :** Définir `WORKER_PROVIDER=gemini`, votre clé Google AI Studio dans `WORKER_API_KEY`, et le modèle souhaité. Pas de `WORKER_API_BASE_URL` nécessaire.
 
-**Particularités :**
-- Utilise le SDK AWS Bedrock Runtime (via `boto3`)
-- Pas de variable `WORKER_API_KEY` — utilise les credentials AWS standard
-- Supporte le cross-region inference
-
-### 5. Custom Adapter
-
-**Compatible avec :** Tout endpoint HTTP personnalisé.
-
-**Configuration :** Définir `WORKER_PROVIDER=custom` avec l'URL de l'endpoint, la clé API, le nom du modèle, et optionnellement des headers personnalisés via `WORKER_CUSTOM_HEADERS`.
+```env
+WORKER_PROVIDER=gemini
+WORKER_API_KEY=AIza-votre-cle-google-ai-studio
+WORKER_MODEL_NAME=gemini-2.0-flash
+```
 
 **Particularités :**
-- Le format de requête et de réponse est configurable
-- Idéal pour les modèles auto-hébergés avec des APIs non-standard
+- Utilise le SDK officiel `google-genai`
+- Modèles recommandés pour le Worker : `gemini-2.0-flash` (rapide, économique), `gemini-1.5-flash`
+- La clé est obtenue gratuitement sur [Google AI Studio](https://aistudio.google.com/)
+- Très faible coût — idéal comme Worker économique
 
 ---
 
@@ -132,8 +128,9 @@ Aucune modification du code des outils MCP ou du serveur n'est nécessaire.
 
 | Fournisseur | Coût | Latence | Qualité code | Offline | Idéal pour |
 |---|---|---|---|---|---|
-| **GPT-4o (Azure)** | €€ (gratuit si entreprise) | ~2-5s | ⭐⭐⭐⭐ | ❌ | Worker principal polyvalent |
-| **GPT-4o-mini** | € | ~1-2s | ⭐⭐⭐ | ❌ | Tâches simples (doc, format) |
-| **Claude Sonnet** | €€ | ~3-6s | ⭐⭐⭐⭐⭐ | ❌ | Code complexe, refactoring |
-| **Ollama (CodeLlama)** | Gratuit | ~5-15s | ⭐⭐⭐ | ✅ | Développement offline |
+| **GPT-4o-mini** | € | ~1-2s | ⭐⭐⭐ | ❌ | Worker par défaut, tâches simples |
+| **Gemini 2.0 Flash** | € | ~1-3s | ⭐⭐⭐ | ❌ | Alternative économique à GPT-4o-mini |
+| **GPT-4o (Azure)** | €€ | ~2-5s | ⭐⭐⭐⭐ | ❌ | Worker polyvalent haut de gamme |
+| **Claude 3 Haiku** | € | ~1-3s | ⭐⭐⭐⭐ | ❌ | Refactoring, code complexe |
+| **Ollama (qwen2.5-coder)** | Gratuit | ~5-15s | ⭐⭐⭐ | ✅ | Développement offline, confidentialité |
 | **Groq (Llama)** | € | ~0.5-1s | ⭐⭐⭐ | ❌ | Tâches rapides, forte volumétrie |
