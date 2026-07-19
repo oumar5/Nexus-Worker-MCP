@@ -322,38 +322,25 @@ class NexusWorkerServer:
         # ── Outil 8 : Métriques FinOps ───────────────────────────────────
 
         @self.mcp.tool(
+            name="worker_get_metrics_tool",
             description=(
-                "Retourne un rapport FinOps de la session en cours : tokens délégués, "
-                "coût réel du Worker, coût estimé si tu avais tout fait toi-même, "
-                "économies réalisées et statistiques du cache.\n\n"
-                "Appelle cet outil en fin de session ou à tout moment pour mesurer "
-                "l'impact financier de l'architecture Nexus.\n\n"
-                "Paramètres optionnels pour ajuster les prix (en $ par 1M tokens) :\n"
-                "- worker_input_price : Coût input du Worker (défaut: 0.15)\n"
-                "- worker_output_price : Coût output du Worker (défaut: 0.60)\n"
-                "- brain_input_price : Coût input du Cerveau (défaut: 5.00)\n"
-                "- brain_output_price : Coût output du Cerveau (défaut: 30.00)"
+                "Retourne un rapport d'utilisation de la session en cours : "
+                "tokens délégués (input/output), nombre d'appels, latences "
+                "moyennes, et statistiques du cache.\n\n"
+                "Appelle cet outil en fin de session ou à tout moment pour "
+                "mesurer l'activité du Worker. Le client peut utiliser ces "
+                "données brutes de tokens pour calculer les économies financières "
+                "générées par rapport à son modèle principal."
             )
         )
-        async def worker_get_metrics_tool(
-            worker_input_price: float = 0.15,
-            worker_output_price: float = 0.60,
-            brain_input_price: float = 5.00,
-            brain_output_price: float = 30.00,
-        ) -> str:
-            finops = self.metrics.get_finops_summary(
-                worker_input_price_per_1m=worker_input_price,
-                worker_output_price_per_1m=worker_output_price,
-                brain_input_price_per_1m=brain_input_price,
-                brain_output_price_per_1m=brain_output_price,
-            )
+        async def worker_get_metrics_tool() -> str:
             cache_stats = self.cache.stats()
+            summary = self.metrics.get_summary()
             return json.dumps(
                 {
                     "status": "success",
-                    "finops": finops,
+                    "metrics": summary,
                     "cache": cache_stats,
-                    "tools_detail": self.metrics.get_summary().get("tools", {}),
                 },
                 ensure_ascii=False,
             )

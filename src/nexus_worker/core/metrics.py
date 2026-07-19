@@ -172,72 +172,7 @@ class MetricsCollector:
 
         return summary
 
-    def get_finops_summary(
-        self,
-        worker_input_price_per_1m: float = 0.15,
-        worker_output_price_per_1m: float = 0.60,
-        brain_input_price_per_1m: float = 5.00,
-        brain_output_price_per_1m: float = 30.00,
-    ) -> dict[str, Any]:
-        """Calcule une estimation FinOps comparant le coût réel Worker vs coût hypothétique Cerveau.
 
-        Compare ce qu'aurait coûté la session si le Cerveau avait tout traité
-        directement, versus le coût réel avec délégation au Worker.
-
-        Args:
-            worker_input_price_per_1m: Prix du Worker pour 1M tokens
-                d'entrée (défaut GPT-4o-mini).
-            worker_output_price_per_1m: Prix du Worker pour 1M tokens
-                de sortie (défaut GPT-4o-mini).
-            brain_input_price_per_1m: Prix du Cerveau pour 1M tokens
-                d'entrée (défaut GPT-5.6 Sol).
-            brain_output_price_per_1m: Prix du Cerveau pour 1M tokens
-                de sortie (défaut GPT-5.6 Sol).
-
-        Returns:
-            Dictionnaire avec les coûts estimés, les économies et le facteur de réduction.
-        """
-        if not self.enabled:
-            return {"enabled": False}
-
-        total_in = self.session.total_tokens_input
-        total_out = self.session.total_tokens_output
-
-        # Coût réel : Worker
-        worker_cost = (total_in / 1_000_000) * worker_input_price_per_1m + (
-            total_out / 1_000_000
-        ) * worker_output_price_per_1m
-
-        # Coût hypothétique : si le Cerveau avait tout fait
-        brain_cost = (total_in / 1_000_000) * brain_input_price_per_1m + (
-            total_out / 1_000_000
-        ) * brain_output_price_per_1m
-
-        savings = brain_cost - worker_cost
-        savings_percent = (savings / brain_cost * 100) if brain_cost > 0 else 0.0
-        reduction_factor = (brain_cost / worker_cost) if worker_cost > 0 else 0.0
-
-        return {
-            "session_duration_seconds": round(self.session.session_duration_seconds, 1),
-            "total_tokens_delegated": total_in + total_out,
-            "total_calls": self.session.total_calls,
-            "pricing": {
-                "worker_input_per_1m": worker_input_price_per_1m,
-                "worker_output_per_1m": worker_output_price_per_1m,
-                "brain_input_per_1m": brain_input_price_per_1m,
-                "brain_output_per_1m": brain_output_price_per_1m,
-            },
-            "cost_worker_usd": round(worker_cost, 6),
-            "cost_if_brain_usd": round(brain_cost, 6),
-            "savings_usd": round(savings, 6),
-            "savings_percent": round(savings_percent, 1),
-            "reduction_factor": round(reduction_factor, 1),
-            "message": (
-                f"En déléguant {self.session.total_calls} appel(s) au Worker, "
-                f"vous avez économisé ~{savings:.4f} $ "
-                f"({savings_percent:.0f}% d'économie, facteur {reduction_factor:.0f}x)."
-            ),
-        }
 
     def reset(self) -> None:
         """Réinitialise toutes les métriques."""
