@@ -15,7 +15,7 @@ from nexus_worker.core.logger import log_tool_call
 from nexus_worker.core.metrics import MetricsCollector
 from nexus_worker.prompts.engine import PromptEngine
 from nexus_worker.providers.base import WorkerProvider
-from nexus_worker.utils.files import read_file_safe
+from nexus_worker.utils.files import read_file_safe, write_file_safe
 
 
 async def worker_refactor_code(
@@ -30,6 +30,7 @@ async def worker_refactor_code(
     max_tokens: int = 4096,
     target_lines: str = "",
     context: str = "",
+    auto_save: bool = False,
 ) -> str:
     """Refactore du code en déléguant au Worker.
 
@@ -45,6 +46,7 @@ async def worker_refactor_code(
         max_tokens: Limite de tokens de sortie.
         target_lines: Plage de lignes ciblées (ex: "42-98").
         context: Contexte additionnel (patterns, types).
+        auto_save: Si True, écrase le fichier cible avec le code refactoré.
 
     Returns:
         Résultat JSON stringifié avec le code refactoré ou l'erreur.
@@ -100,19 +102,33 @@ async def worker_refactor_code(
             success=True,
         )
 
-        return json.dumps(
-            {
-                "status": "success",
-                "refactored_code": response.content,
-                "file_info": {"path": file_path, "total_lines": total_lines},
-                "tokens_used": {
-                    "input": response.tokens_input,
-                    "output": response.tokens_output,
-                },
-                "model": response.model,
+        result_dict = {
+            "status": "success",
+            "refactored_code": response.content,
+            "file_info": {"path": file_path, "total_lines": total_lines},
+            "tokens_used": {
+                "input": response.tokens_input,
+                "output": response.tokens_output,
             },
-            ensure_ascii=False,
-        )
+            "model": response.model,
+        }
+
+        # Sauvegarde automatique si demandée
+        if auto_save:
+            try:
+                # Écrire le contenu refactoré
+                lines_written = write_file_safe(
+                    file_path,
+                    response.content,
+                    allowed_paths=allowed_paths
+                )
+                result_dict["saved"] = True
+                result_dict["lines_written"] = lines_written
+            except (PermissionError, OSError) as e:
+                result_dict["saved"] = False
+                result_dict["save_error"] = str(e)
+
+        return json.dumps(result_dict, ensure_ascii=False)
 
     except WorkerError as e:
         metrics.record_call(tool_name=tool_name, success=False)

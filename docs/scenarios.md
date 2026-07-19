@@ -2,6 +2,8 @@
 
 Ce document décrit les cas d'utilisation concrets du système, avec les flux d'interaction détaillés entre le Cerveau, le MCP et le Worker.
 
+> Pour comprendre les principes de conception derrière ces scénarios, consultez [design-patterns.md](design-patterns.md).
+
 ---
 
 ## Scénario 1 : Création d'une feature complète
@@ -10,24 +12,39 @@ Ce document décrit les cas d'utilisation concrets du système, avec les flux d'
 
 ### Flux d'interaction
 
-1. **Le Cerveau planifie** — Il décompose la demande : modèle User, endpoint login, middleware de vérification. Il identifie 3 fichiers à créer.
+```mermaid
+sequenceDiagram
+    participant U as 👤 Utilisateur
+    participant B as 🧠 Cerveau
+    participant W as ⚙️ Worker
 
-2. **Délégation 1 → `worker_generate_code`** — Le Cerveau envoie l'instruction : "Crée un modèle User SQLAlchemy avec email, hashed_password et created_at". Le Worker retourne 45 lignes de code.
+    U->>B: "Ajoute un système d'authentification JWT"
+    Note over B: Planifie : 3 fichiers à créer<br/>(modèle User, routes auth, middleware)
 
-3. **Le Cerveau valide** — Il lit le résultat (opération peu coûteuse en tokens d'entrée) et vérifie la cohérence.
+    B->>W: worker_generate_code("Crée un modèle User SQLAlchemy<br/>avec email, hashed_password, created_at")
+    W-->>B: 45 lignes de code ✅
+    Note over B: Lit le résultat (input tokens)<br/>Valide la cohérence ✅
 
-4. **Délégation 2 → `worker_generate_code`** — Le Cerveau demande la création des routes d'authentification avec JWT, en passant un résumé du modèle User comme contexte. Le Worker retourne 120 lignes.
+    B->>W: worker_generate_code("Crée les routes d'auth JWT",<br/>context="Modèle User avec email et hash...")
+    W-->>B: 120 lignes de code ✅
+    Note over B: Lit le résultat...<br/>⚠️ Secret JWT hardcodé détecté
 
-5. **Le Cerveau détecte un problème** — Un secret JWT est hardcodé. Il appelle `worker_refactor_code` pour corriger spécifiquement ce point.
+    B->>W: worker_refactor_code("Extraire le secret JWT<br/>dans une variable d'environnement")
+    W-->>B: Code corrigé ✅
 
-6. **Validation finale** — Le Cerveau vérifie l'ensemble et présente le résultat à l'utilisateur.
+    B-->>U: "Feature JWT créée — 3 fichiers générés"
+```
 
 ### Économie réalisée
 
 | Sans Nexus | Avec Nexus |
 |---|---|
 | Le Cerveau génère ~165 lignes (Output très cher) | Le Cerveau ne génère que ~3 instructions courtes |
-| Input : ~500 tokens | Input : ~200 tokens (résumés uniquement) |
+| Coût Output Cerveau : ~0,148 $ | Coût Output Cerveau : ~0,005 $ |
+
+### Pattern appliqué
+
+Ce scénario illustre le **Reviewer-Critic** : le Cerveau délègue, lit les résultats, détecte un problème (secret hardcodé), et re-délègue une correction ciblée plutôt que de réécrire tout le fichier.
 
 ---
 
@@ -37,19 +54,32 @@ Ce document décrit les cas d'utilisation concrets du système, avec les flux d'
 
 ### Flux d'interaction
 
-1. **Le Cerveau identifie le volume** — 15 000 lignes, trop lourd pour son contexte.
+```mermaid
+sequenceDiagram
+    participant U as 👤 Utilisateur
+    participant B as 🧠 Cerveau
+    participant W as ⚙️ Worker
 
-2. **Délégation → `worker_analyze_file`** — Instruction : "Isole les stack traces d'erreurs fatales (CRITICAL, FATAL, unhandled exception). Pour chaque erreur, inclus les 5 lignes de contexte précédentes."
+    U->>B: "Le serveur crashe, voici les logs"
+    Note over B: 15 000 lignes — trop lourd<br/>pour son contexte
 
-3. **Le Worker filtre** — Il lit les 15 000 lignes sur l'API économique et retourne 3 stack traces pertinentes (80 lignes au total).
+    B->>W: worker_analyze_file(logs.txt,<br/>"Isole les stack traces CRITICAL/FATAL<br/>avec 5 lignes de contexte")
+    Note over W: Lit 15 000 lignes<br/>(tokens d'input économiques)
+    W-->>B: 3 stack traces pertinentes (80 lignes)
 
-4. **Le Cerveau diagnostique** — Il lit les 80 lignes, identifie une race condition dans le gestionnaire de connexions DB, et propose la correction.
+    Note over B: Lit 80 lignes seulement<br/>Identifie une race condition<br/>dans le gestionnaire de connexions DB
+    B-->>U: "Race condition identifiée dans<br/>le pool de connexions, voici la correction..."
+```
 
 ### Économie réalisée
 
 - **15 000 lignes** jamais envoyées au modèle cher
-- Le Worker encaisse ~45 000 tokens d'input sur l'API gratuite
+- Le Worker encaisse ~45 000 tokens d'input sur l'API économique
 - Le Cerveau ne traite que **80 lignes** pertinentes → économie de **95%+ des tokens**
+
+### Pattern appliqué
+
+Ce scénario illustre la **protection de contexte** : le Worker agit comme un filtre qui réduit l'information brute en un résumé actionnable pour le Cerveau.
 
 ---
 
@@ -59,13 +89,25 @@ Ce document décrit les cas d'utilisation concrets du système, avec les flux d'
 
 ### Flux d'interaction
 
-1. **Délégation 1 → `worker_analyze_file`** — Le Cerveau demande au Worker de résumer uniquement les endpoints nécessaires : créer un client, créer une session Checkout, gérer les webhooks. Inclure les signatures et types de réponse.
+```mermaid
+sequenceDiagram
+    participant U as 👤 Utilisateur
+    participant B as 🧠 Cerveau
+    participant W as ⚙️ Worker
 
-2. **Le Worker produit un cheat sheet** — 60 lignes avec les 3 endpoints, leurs paramètres et leurs réponses.
+    U->>B: "Intègre Stripe pour les paiements"
 
-3. **Délégation 2 → `worker_generate_code`** — Le Cerveau utilise ce résumé de 60 lignes comme contexte et demande la création du service d'intégration Stripe.
+    B->>W: worker_analyze_file(stripe_docs.md,<br/>"Résume uniquement : créer client,<br/>session Checkout, webhooks.<br/>Inclure signatures et types.")
+    Note over W: Lit 200 pages<br/>Produit un cheat sheet
+    W-->>B: 60 lignes avec 3 endpoints clés
 
-4. **Validation** — Le Cerveau vérifie la cohérence avec le reste de l'application.
+    Note over B: Contexte propre et ciblé :<br/>60 lignes au lieu de 200 pages
+
+    B->>W: worker_generate_code(<br/>"Crée le service d'intégration Stripe",<br/>context="Résumé des 3 endpoints...")
+    W-->>B: Service Stripe complet ✅
+
+    B-->>U: "Service Stripe créé et prêt"
+```
 
 ### Point clé
 
@@ -79,19 +121,51 @@ Le Cerveau n'a jamais vu les 200 pages de documentation Stripe. Son contexte res
 
 ### Flux d'interaction
 
-1. **Le Cerveau planifie** — Il liste les 30 fichiers et définit les règles de conversion : `this.state` → `useState`, `componentDidMount` → `useEffect`, `this.props` → destructuration.
+```mermaid
+sequenceDiagram
+    participant B as 🧠 Cerveau
+    participant W as ⚙️ Worker
 
-2. **Boucle de migration** — Pour chaque fichier, le Cerveau appelle `worker_refactor_code` avec le chemin du fichier et les règles de conversion. Le Worker applique les transformations et retourne le composant migré.
+    Note over B: Planifie : 30 fichiers,<br/>règles de conversion définies
 
-3. **Validation unitaire** — Le Cerveau relit chaque résultat et vérifie la cohérence des imports.
+    loop Pour chaque fichier (1 à 30)
+        B->>W: worker_refactor_code(fichier_N.jsx,<br/>"this.state → useState,<br/>componentDidMount → useEffect,<br/>this.props → destructuration")
+        W-->>B: Composant migré ✅
+        Note over B: Lit le résultat,<br/>vérifie les imports
+    end
 
-4. **Correction si nécessaire** — Si un composant est mal converti, le Cerveau rappelle l'outil avec une instruction de correction ciblée.
-
-5. **Bilan** — Le Cerveau présente le résultat : "30/30 composants migrés".
+    Note over B: 30/30 composants migrés ✅
+```
 
 ### Point d'attention
 
-Pour les migrations multi-fichiers, le Cerveau maintient un **registre de progression** pour ne pas perdre le fil. La boucle est gérée par le Cerveau, pas par le Worker.
+Pour les migrations multi-fichiers, le Cerveau maintient un **registre de progression** pour ne pas perdre le fil. La boucle est gérée par le Cerveau, pas par le Worker — c'est le principe fondamental du pattern **Supervisor-Worker**.
+
+### Opportunité de parallélisme
+
+Les 30 fichiers étant indépendants, le Cerveau peut lancer **plusieurs refactorings en parallèle** :
+
+```mermaid
+gantt
+    title Migration parallélisée (3 Workers simultanés)
+    dateFormat s
+    axisFormat %S s
+
+    section Worker 1
+    Fichier 1   :a1, 0, 3
+    Fichier 4   :a2, 3, 6
+    Fichier 7   :a3, 6, 9
+
+    section Worker 2
+    Fichier 2   :b1, 0, 4
+    Fichier 5   :b2, 4, 7
+    Fichier 8   :b3, 7, 10
+
+    section Worker 3
+    Fichier 3   :c1, 0, 3
+    Fichier 6   :c2, 3, 7
+    Fichier 9   :c3, 7, 10
+```
 
 ---
 
@@ -101,13 +175,29 @@ Pour les migrations multi-fichiers, le Cerveau maintient un **registre de progre
 
 ### Flux d'interaction
 
-1. **Compréhension → `worker_explain_code`** — Le Cerveau demande d'abord une explication structurée du module. Le Worker identifie 8 fonctions publiques avec leurs rôles.
+```mermaid
+sequenceDiagram
+    participant B as 🧠 Cerveau
+    participant W as ⚙️ Worker
 
-2. **Le Cerveau comprend la logique** — Sans avoir lu les 400 lignes, il sait ce que fait chaque fonction grâce au résumé.
+    B->>W: worker_explain_code(module.py)
+    Note over W: Lit 400 lignes,<br/>identifie 8 fonctions publiques
+    W-->>B: Résumé structuré (fonctions, rôles, dépendances)
 
-3. **Génération → `worker_generate_tests`** — Le Cerveau délègue la création des tests avec le niveau de couverture "exhaustive". Le Worker produit 35 tests couvrant cas nominaux, cas limites et erreurs.
+    Note over B: Comprend la logique<br/>sans avoir lu les 400 lignes
 
-4. **Validation** — Le Cerveau vérifie que les mocks sont cohérents et que les assertions sont pertinentes.
+    B->>W: worker_generate_tests(module.py,<br/>coverage_level="exhaustive")
+    Note over W: Génère 35 tests :<br/>cas nominaux, limites, erreurs
+    W-->>B: Suite de tests complète ✅
+
+    Note over B: Vérifie que les mocks<br/>sont cohérents et que les<br/>assertions sont pertinentes
+```
+
+### Pattern appliqué
+
+Ce scénario combine deux patterns :
+1. **Protection de contexte** : `worker_explain_code` permet au Cerveau de comprendre le module sans le charger
+2. **Délégation systématique des tests** : La génération de tests est toujours déléguée (forte production d'output tokens)
 
 ---
 
@@ -117,11 +207,36 @@ Pour les migrations multi-fichiers, le Cerveau maintient un **registre de progre
 
 ### Flux d'interaction
 
-1. **Le Cerveau identifie les fichiers modifiés** — Via git diff, 5 fichiers modifiés, 350 lignes changées.
+```mermaid
+sequenceDiagram
+    participant B as 🧠 Cerveau
+    participant W1 as ⚙️ Worker 1
+    participant W2 as ⚙️ Worker 2
+    participant W3 as ⚙️ Worker 3
 
-2. **Boucle d'analyse** — Pour chaque fichier, le Cerveau appelle `worker_analyze_file` avec l'instruction : "Fais une revue de code professionnelle. Identifie bugs, problèmes de performance, violations de conventions, failles de sécurité, et code dupliqué. Note chaque point avec sa sévérité."
+    Note over B: 5 fichiers modifiés,<br/>350 lignes changées
 
-3. **Agrégation** — Le Cerveau reçoit les 5 revues individuelles, les agrège, priorise les problèmes critiques, et présente un rapport structuré à l'utilisateur.
+    par Revues en parallèle
+        B->>W1: worker_review_code(auth.py)
+        B->>W2: worker_review_code(users.py)
+        B->>W3: worker_review_code(api.py)
+    end
+
+    W2-->>B: Revue users.py ✅
+    W1-->>B: Revue auth.py ✅
+    W3-->>B: Revue api.py ✅
+
+    B->>W1: worker_review_code(models.py)
+    W1-->>B: Revue models.py ✅
+    B->>W1: worker_review_code(tests.py)
+    W1-->>B: Revue tests.py ✅
+
+    Note over B: Agrège les 5 revues,<br/>priorise les problèmes critiques
+```
+
+### Point clé : le cache en action
+
+Si l'utilisateur relance la revue sur le même fichier sans modification, le cache retourne le résultat instantanément (0 token, 0 latence).
 
 ---
 
@@ -131,24 +246,37 @@ Pour les migrations multi-fichiers, le Cerveau maintient un **registre de progre
 
 ### Flux d'interaction
 
-1. **Le Cerveau liste les fichiers** — 8 fichiers dans le module `utils/`.
+```mermaid
+sequenceDiagram
+    participant B as 🧠 Cerveau
+    participant W as ⚙️ Worker
 
-2. **Compréhension** — Pour chaque fichier, appel à `worker_explain_code` pour comprendre les fonctions publiques.
+    Note over B: 8 fichiers dans utils/
 
-3. **Ajout des docstrings** — Pour chaque fichier, appel à `worker_refactor_code` avec l'instruction : "Ajoute des docstrings Google-style à toutes les fonctions publiques. Ne modifie PAS le code, uniquement les docstrings."
+    loop Pour chaque fichier
+        B->>W: worker_explain_code(fichier_N.py)
+        W-->>B: Résumé des fonctions publiques
 
-4. **Génération du README** — Le Cerveau synthétise les résumés de tous les fichiers et appelle `worker_generate_code` pour produire un README.md récapitulatif.
+        B->>W: worker_document_code(fichier_N.py,<br/>style="google")
+        W-->>B: Fichier avec docstrings insérées ✅
+    end
+
+    Note over B: Synthétise tous les résumés
+
+    B->>W: worker_generate_code(<br/>"Crée un README.md récapitulatif",<br/>context="Résumés de tous les fichiers...")
+    W-->>B: README.md complet ✅
+```
 
 ---
 
 ## Tableau récapitulatif
 
-| # | Scénario | Outils utilisés | Gain estimé |
-|---|---|---|---|
-| 1 | Création de feature | `generate` + `refactor` | 70-80% tokens |
-| 2 | Debug de logs | `analyze` | 95%+ tokens |
-| 3 | Compression doc | `analyze` + `generate` | 85% tokens |
-| 4 | Migration framework | `refactor` (boucle) | 75% tokens |
-| 5 | Génération de tests | `explain` + `generate_tests` | 80% tokens |
-| 6 | Code review | `analyze` (boucle) | 70% tokens |
-| 7 | Documentation | `explain` + `refactor` + `generate` | 85% tokens |
+| # | Scénario | Outils utilisés | Pattern principal | Gain estimé |
+|---|---|---|---|---|
+| 1 | Création de feature | `generate` + `refactor` | Reviewer-Critic | 80–90% tokens |
+| 2 | Debug de logs | `analyze` | Protection de contexte | 95%+ tokens |
+| 3 | Compression doc | `analyze` + `generate` | Protection de contexte | 85% tokens |
+| 4 | Migration framework | `refactor` (boucle parallèle) | Parallélisme | 75% tokens |
+| 5 | Génération de tests | `explain` + `generate_tests` | Délégation systématique | 90% tokens |
+| 6 | Code review | `review` (parallèle + cache) | Parallélisme + Cache | 70–80% tokens |
+| 7 | Documentation | `explain` + `document` + `generate` | Pipeline séquentiel | 85% tokens |

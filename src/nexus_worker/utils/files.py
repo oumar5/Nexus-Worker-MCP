@@ -84,6 +84,40 @@ def read_file_safe(
     return content, total_lines
 
 
+def write_file_safe(
+    file_path: str | Path,
+    content: str,
+    allowed_paths: list[Path] | None = None,
+) -> int:
+    """Écrit dans un fichier de manière sécurisée avec vérification des permissions.
+
+    Crée les répertoires parents si nécessaire.
+
+    Args:
+        file_path: Chemin du fichier à écrire.
+        content: Contenu à écrire.
+        allowed_paths: Répertoires autorisés. Si None, pas de restriction.
+
+    Returns:
+        Nombre de lignes écrites.
+
+    Raises:
+        PermissionError: Si le fichier est hors des chemins autorisés.
+    """
+    path = Path(file_path).resolve()
+
+    if allowed_paths and not is_path_allowed(path, allowed_paths):
+        raise PermissionError(
+            f"Accès refusé: {path} est hors des répertoires autorisés "
+            f"(ALLOWED_PATHS). Répertoires autorisés: {[str(p) for p in allowed_paths]}"
+        )
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+
+    return len(content.splitlines())
+
+
 def chunk_file(
     content: str,
     max_lines_per_chunk: int = 500,

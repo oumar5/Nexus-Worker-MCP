@@ -171,9 +171,6 @@ class MetricsCollector:
             }
 
         return summary
-
-
-
     def reset(self) -> None:
         """Réinitialise toutes les métriques."""
         self.session = SessionMetrics()

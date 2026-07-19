@@ -6,6 +6,7 @@ Génère du code neuf en déléguant au Worker via le provider configuré.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any
 
 from nexus_worker.core.errors import WorkerError, format_error_for_brain, with_retry
@@ -13,6 +14,7 @@ from nexus_worker.core.logger import log_tool_call
 from nexus_worker.core.metrics import MetricsCollector
 from nexus_worker.prompts.engine import PromptEngine
 from nexus_worker.providers.base import WorkerProvider
+from nexus_worker.utils.files import write_file_safe
 
 
 async def worker_generate_code(
@@ -21,11 +23,13 @@ async def worker_generate_code(
     prompt_engine: PromptEngine,
     metrics: MetricsCollector,
     call_tracker: Any,
+    allowed_paths: list[Path] | None = None,
     max_retries: int = 3,
     max_tokens: int = 4096,
     target_path: str = "",
     language: str = "",
     context: str = "",
+    auto_save: bool = False,
 ) -> str:
     """Génère du code en déléguant au modèle Worker.
 
@@ -35,11 +39,13 @@ async def worker_generate_code(
         prompt_engine: Moteur de prompts pour charger le template.
         metrics: Collecteur de métriques.
         call_tracker: Tracker anti-boucle infinie.
+        allowed_paths: Répertoires autorisés (pour auto_save).
         max_retries: Nombre max de tentatives.
         max_tokens: Limite de tokens de sortie.
-        target_path: Chemin du fichier cible (contexte).
+        target_path: Chemin du fichier cible (contexte et sauvegarde).
         language: Langage de programmation cible.
         context: Contexte additionnel (imports, conventions, types).
+        auto_save: Si True, enregistre directement le code dans target_path.
 
     Returns:
         Résultat JSON stringifié avec le code généré ou l'erreur.
@@ -86,19 +92,33 @@ async def worker_generate_code(
             success=True,
         )
 
-        return json.dumps(
-            {
-                "status": "success",
-                "code": response.content,
-                "language": language or "inferred",
-                "tokens_used": {
-                    "input": response.tokens_input,
-                    "output": response.tokens_output,
-                },
-                "model": response.model,
+        result_dict = {
+            "status": "success",
+            "code": response.content,
+            "language": language or "inferred",
+            "tokens_used": {
+                "input": response.tokens_input,
+                "output": response.tokens_output,
             },
-            ensure_ascii=False,
-        )
+            "model": response.model,
+        }
+
+        # Sauvegarde automatique si demandée
+        if auto_save and target_path:
+            try:
+                lines_written = write_file_safe(
+                    target_path,
+                    response.content,
+                    allowed_paths=allowed_paths
+                )
+                result_dict["saved"] = True
+                result_dict["saved_path"] = target_path
+                result_dict["lines_written"] = lines_written
+            except (PermissionError, OSError) as e:
+                result_dict["saved"] = False
+                result_dict["save_error"] = str(e)
+
+        return json.dumps(result_dict, ensure_ascii=False)
 
     except WorkerError as e:
         metrics.record_call(tool_name=tool_name, success=False)

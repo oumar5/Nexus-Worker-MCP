@@ -5,11 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class WorkerConfig(BaseSettings):
     """Configuration du modèle Worker (exécuteur)."""
+
+    model_config = SettingsConfigDict(populate_by_name=True)
 
     provider: str = Field(default="openai", alias="WORKER_PROVIDER")
     api_base_url: str = Field(default="https://api.openai.com/v1", alias="WORKER_API_BASE_URL")
@@ -23,6 +25,8 @@ class WorkerConfig(BaseSettings):
 
 class FallbackConfig(BaseSettings):
     """Configuration du provider de secours (optionnel)."""
+
+    model_config = SettingsConfigDict(populate_by_name=True)
 
     provider: str | None = Field(default=None, alias="WORKER_FALLBACK_PROVIDER")
     api_base_url: str | None = Field(default=None, alias="WORKER_FALLBACK_API_BASE_URL")
@@ -38,6 +42,8 @@ class FallbackConfig(BaseSettings):
 class TransportConfig(BaseSettings):
     """Configuration du transport MCP."""
 
+    model_config = SettingsConfigDict(populate_by_name=True)
+
     mode: str = Field(default="stdio", alias="MCP_TRANSPORT")
     host: str = Field(default="127.0.0.1", alias="MCP_HOST")
     port: int = Field(default=8080, alias="MCP_PORT")
@@ -45,6 +51,8 @@ class TransportConfig(BaseSettings):
 
 class SecurityConfig(BaseSettings):
     """Configuration de sécurité."""
+
+    model_config = SettingsConfigDict(populate_by_name=True)
 
     allowed_paths: str = Field(default=".", alias="ALLOWED_PATHS")
 
@@ -56,6 +64,8 @@ class SecurityConfig(BaseSettings):
 class LoggingConfig(BaseSettings):
     """Configuration du logging."""
 
+    model_config = SettingsConfigDict(populate_by_name=True)
+
     level: str = Field(default="INFO", alias="LOG_LEVEL")
     file: str = Field(default="nexus_worker.log", alias="LOG_FILE")
     metrics_enabled: bool = Field(default=True, alias="METRICS_ENABLED")
@@ -63,6 +73,8 @@ class LoggingConfig(BaseSettings):
 
 class CacheConfig(BaseSettings):
     """Configuration du cache de résultats en mémoire."""
+
+    model_config = SettingsConfigDict(populate_by_name=True)
 
     enabled: bool = Field(default=True, alias="CACHE_ENABLED")
     ttl_seconds: int = Field(default=3600, alias="CACHE_TTL_SECONDS")

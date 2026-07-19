@@ -9,10 +9,10 @@
 
 ## Concept
 
-Nexus-Worker-MCP implémente le pattern **Planificateur / Exécuteur / Critique** :
+Nexus-Worker-MCP implémente le pattern **Supervisor-Worker** (Planificateur / Exécuteur / Critique) :
 
-- **Le Cerveau** (modèle principal dans votre IDE) planifie, supervise et valide
-- **Le Worker** (modèle économique via API) exécute les tâches lourdes en tokens
+- **Le Cerveau** (modèle principal dans votre IDE) planifie, supervise et valide (pattern *Reviewer-Critic*)
+- **Le Worker** (modèle économique via API) exécute les tâches lourdes en tokens (Single-Shot, parallélisable)
 - **Le MCP** (ce projet) orchestre la délégation entre les deux
 
 ```
@@ -83,14 +83,15 @@ python -m nexus_worker
 
 | Document | Description |
 |---|---|
-| [Architecture](docs/architecture.md) | Architecture technique détaillée |
+| [Architecture](docs/architecture.md) | Architecture technique avec diagrammes Mermaid |
+| [Design Patterns](docs/design-patterns.md) | Patterns architecturaux et stratégie de délégation |
 | [Installation](docs/setup.md) | Guide d'installation et configuration |
-| [Outils MCP](docs/tools-reference.md) | Référence complète des outils exposés |
+| [Outils MCP](docs/tools-reference.md) | Référence complète des 8 outils exposés |
 | [Adaptateurs](docs/provider-adapters.md) | Guide des fournisseurs supportés |
-| [Scénarios](docs/scenarios.md) | Cas d'usage détaillés avec flux |
+| [Scénarios](docs/scenarios.md) | Cas d'usage détaillés avec flux et diagrammes |
 | [Gestion d'erreurs](docs/error-handling.md) | Stratégie de résilience et fallback |
 | [Templates de prompts](docs/prompt-templates.md) | Prompts systèmes par type de tâche |
-| [Analyse FinOps](docs/finops.md) | Analyse financière et ROI de l'architecture |
+| [Analyse FinOps](docs/finops.md) | Analyse financière, économie de tokens et ROI |
 | [Contributing](docs/contributing.md) | Guide de contribution |
 
 ## Licence

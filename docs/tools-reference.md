@@ -20,16 +20,24 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 
 ### Paramètres
 
-| Paramètre | Type | Requis | Description |
-|---|---|---|---|
-| `instruction` | string | ✅ | Consigne technique détaillée pour la génération |
-| `target_path` | string | ❌ | Chemin du fichier cible (pour le contexte) |
-| `language` | string | ❌ | Langage de programmation (défaut: inféré) |
-| `context` | string | ❌ | Contexte additionnel (imports existants, conventions, types) |
+- `instruction` (string) : Exigences techniques détaillées.
+- `target_path` (string, optionnel) : Chemin du fichier de destination (sert de contexte).
+- `language` (string, optionnel) : Langage de programmation cible.
+- `context` (string, optionnel) : Contexte additionnel (patterns, imports).
+- `auto_save` (boolean, optionnel) : Si True, enregistre directement le code généré dans `target_path`.
 
 ### Retour
-
-`status`, `code`, `language`, `tokens_used`, `model`
+```json
+{
+  "status": "success",
+  "code": "def hello():\n    print('world')",
+  "language": "python",
+  "saved": true,
+  "saved_path": "src/hello.py",
+  "tokens_used": {"input": 120, "output": 45},
+  "model": "gpt-4o"
+}
+```
 
 ---
 
@@ -73,16 +81,23 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 
 ### Paramètres
 
-| Paramètre | Type | Requis | Description |
-|---|---|---|---|
-| `file_path` | string | ✅ | Chemin du fichier à refactorer |
-| `instruction` | string | ✅ | Instructions de refactoring détaillées |
-| `target_lines` | string | ❌ | Plage de lignes ciblées (ex: "42-98") |
-| `context` | string | ❌ | Contexte additionnel (patterns, types) |
+- `file_path` (string) : Fichier à refactorer.
+- `instruction` (string) : Directives de modification.
+- `target_lines` (string, optionnel) : Plage de lignes (ex: "42-98").
+- `context` (string, optionnel) : Règles ou conventions spécifiques.
+- `auto_save` (boolean, optionnel) : Si True, écrase directement le fichier avec le nouveau code.
 
 ### Retour
-
-`status`, `refactored_code`, `file_info`, `tokens_used`, `model`
+```json
+{
+  "status": "success",
+  "refactored_code": "...",
+  "file_info": {"path": "api.py", "total_lines": 150},
+  "saved": true,
+  "tokens_used": {"input": 400, "output": 250},
+  "model": "gpt-4o"
+}
+```
 
 ---
 
@@ -206,42 +221,37 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 
 ## 8. `worker_get_metrics` ✨ Nouveau
 
-**Objectif :** Obtenir un rapport FinOps de la session en cours.
+**Objectif :** Obtenir un rapport des métriques de la session en cours.
 
 ### Description (vue par le Cerveau)
 
-> *"Retourne un rapport FinOps de la session en cours : tokens délégués, coût réel du Worker, coût estimé si tu avais tout fait toi-même, économies réalisées et statistiques du cache."*
+> *"Obtient les métriques pour la session en cours, incluant l'utilisation des tokens, les latences, et les statistiques du cache."*
 >
-> Appelle cet outil en fin de session ou à tout moment pour mesurer l'impact financier de l'architecture Nexus.
+> Appelle cet outil en fin de session ou à tout moment pour mesurer l'activité du Worker.
+
+### worker_get_metrics
+
+Obtient les métriques pour la session en cours, incluant l'utilisation des tokens, les latences, et les statistiques du cache.
 
 ### Paramètres
+*(Aucun paramètre requis)*
 
-| Paramètre | Type | Requis | Description |
-|---|---|---|---|
-| `worker_input_price` | float | ❌ | Prix input Worker / 1M tokens (défaut: 0.15 — GPT-4o-mini) |
-| `worker_output_price` | float | ❌ | Prix output Worker / 1M tokens (défaut: 0.60) |
-| `brain_input_price` | float | ❌ | Prix input Cerveau / 1M tokens (défaut: 5.00 — GPT-5.6 Sol) |
-| `brain_output_price` | float | ❌ | Prix output Cerveau / 1M tokens (défaut: 30.00) |
-
-### Retour (exemple)
-
+### Retour
 ```json
 {
   "status": "success",
-  "finops": {
-    "total_tokens_delegated": 45230,
-    "total_calls": 8,
-    "cost_worker_usd": 0.0043,
-    "cost_if_brain_usd": 0.0872,
-    "savings_usd": 0.0829,
-    "savings_percent": 95.1,
-    "reduction_factor": 20.0,
-    "message": "En déléguant 8 appel(s) au Worker, vous avez économisé ~0.0829 $ (95% d'économie, facteur 20x)."
+  "metrics": {
+    "total_calls": 5,
+    "successful_calls": 5,
+    "failed_calls": 0,
+    "total_tokens_input": 4500,
+    "total_tokens_output": 1200,
+    "avg_latency_ms": 1250.5
   },
   "cache": {
-    "hits": 3,
+    "hits": 2,
     "misses": 5,
-    "hit_rate_percent": 37.5
+    "size": 5
   }
 }
 ```

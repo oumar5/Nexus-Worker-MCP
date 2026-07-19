@@ -106,9 +106,13 @@ class NexusWorkerServer:
                 "dépassant 30 lignes. Ne génère JAMAIS de longs blocs de code toi-même "
                 "— délègue à cet outil. Fournis une instruction technique détaillée "
                 "incluant : le langage, le framework, les conventions de nommage, et le "
-                "comportement attendu. L'outil retournera le code généré prêt à l'emploi. "
-                "Tu pourras ensuite le relire, le valider et demander des corrections si "
-                "nécessaire.\n\n"
+                "comportement attendu. \n\n"
+                "🔥 PATTERN REVIEWER-CRITIC : Si tu actives 'auto_save=True', le Worker "
+                "écrira directement le code sur le disque et te le renverra pour revue. "
+                "Tu pourras ensuite simplement lire le code retourné (ce qui est très "
+                "économique en Input tokens) et décider si tu dois corriger une ligne "
+                "précise. N'essaie pas de copier-coller le code retourné par le Worker "
+                "pour le sauvegarder toi-même — c'est une perte d'Output tokens très chers.\n\n"
                 "Exemples d'utilisation : Créer une route API, un composant UI, un script "
                 "de migration, un fichier de configuration.\n\n"
                 "NE PAS utiliser pour : Des corrections mineures (< 10 lignes), ou de la "
@@ -120,18 +124,20 @@ class NexusWorkerServer:
             target_path: str = "",
             language: str = "",
             context: str = "",
+            auto_save: bool = False,
         ) -> str:
             return await worker_generate_code(
                 instruction=instruction,
                 provider=self._get_provider(),
                 prompt_engine=self.prompt_engine,
                 metrics=self.metrics,
-                call_tracker=self.call_tracker,
+                allowed_paths=self.config.security.get_allowed_paths(),
                 max_retries=self.config.worker.max_retries,
                 max_tokens=self.config.worker.max_output_tokens,
                 target_path=target_path,
                 language=language,
                 context=context,
+                auto_save=auto_save,
             )
 
         # ── Outil 2 : Analyse de fichier ─────────────────────────────────
@@ -174,6 +180,10 @@ class NexusWorkerServer:
                 "Utilise cet outil pour appliquer des modifications substantielles sur du "
                 "code existant : renommage massif, restructuration, ajout de gestion "
                 "d'erreurs, migration de patterns, ou conversion entre frameworks.\n\n"
+                "🔥 PATTERN REVIEWER-CRITIC : Si tu actives 'auto_save=True', le Worker "
+                "écrasera directement le fichier avec le code refactoré. Tu n'auras qu'à "
+                "relire le résultat retourné (très économique) plutôt que de réécrire le "
+                "fichier toi-même.\n\n"
                 "Exemples d'utilisation : Convertir des callbacks en async/await, ajouter "
                 "du try/catch partout, migrer des imports, appliquer un design pattern.\n\n"
                 "NE PAS utiliser pour : Changer une seule ligne, ou du refactoring "
@@ -185,6 +195,7 @@ class NexusWorkerServer:
             instruction: str,
             target_lines: str = "",
             context: str = "",
+            auto_save: bool = False,
         ) -> str:
             return await worker_refactor_code(
                 file_path=file_path,
@@ -198,6 +209,7 @@ class NexusWorkerServer:
                 max_tokens=self.config.worker.max_output_tokens,
                 target_lines=target_lines,
                 context=context,
+                auto_save=auto_save,
             )
 
         # ── Outil 4 : Explication de code ────────────────────────────────
