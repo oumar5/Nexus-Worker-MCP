@@ -31,10 +31,13 @@ Nexus-Worker-MCP implémente le pattern **Planificateur / Exécuteur / Critique*
 
 ```bash
 # 1. Cloner et installer
-git clone https://github.com/votre-org/Nexus-Worker-MCP.git
+git clone https://github.com/oumar5/Nexus-Worker-MCP.git
 cd Nexus-Worker-MCP
 python -m venv .venv
-.venv\Scripts\activate  # Windows
+# Windows:
+.venv\Scripts\activate
+# Linux/macOS:
+# source .venv/bin/activate
 pip install -e .
 
 # 2. Configurer
@@ -69,6 +72,7 @@ python -m nexus_worker
 | [Scénarios](docs/scenarios.md) | Cas d'usage détaillés avec flux |
 | [Gestion d'erreurs](docs/error-handling.md) | Stratégie de résilience et fallback |
 | [Templates de prompts](docs/prompt-templates.md) | Prompts systèmes par type de tâche |
+| [Analyse FinOps](docs/finops.md) | Analyse financière et ROI de l'architecture |
 | [Contributing](docs/contributing.md) | Guide de contribution |
 
 ## Licence
