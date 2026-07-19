@@ -50,7 +50,9 @@ class TestWorkerGenerateCode:
 
         mock_provider.complete.assert_called_once()
         call_args = mock_provider.complete.call_args
-        system_prompt = call_args.args[0] if call_args.args else call_args.kwargs.get("system_prompt", "")
+        system_prompt = (
+            call_args.args[0] if call_args.args else call_args.kwargs.get("system_prompt", "")
+        )
         assert "javascript" in system_prompt.lower() or "javascript" in str(call_args)
 
     @pytest.mark.asyncio
@@ -113,5 +115,9 @@ class TestWorkerGenerateCode:
         )
 
         call_args = mock_provider.complete.call_args
-        user_prompt = call_args.args[1] if len(call_args.args) > 1 else call_args.kwargs.get("user_prompt", "")
+        user_prompt = (
+            call_args.args[1]
+            if len(call_args.args) > 1
+            else call_args.kwargs.get("user_prompt", "")
+        )
         assert "src/services/auth.py" in user_prompt

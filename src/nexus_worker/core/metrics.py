@@ -185,10 +185,14 @@ class MetricsCollector:
         directement, versus le coût réel avec délégation au Worker.
 
         Args:
-            worker_input_price_per_1m: Prix du Worker pour 1M tokens d'entrée (défaut GPT-4o-mini).
-            worker_output_price_per_1m: Prix du Worker pour 1M tokens de sortie (défaut GPT-4o-mini).
-            brain_input_price_per_1m: Prix du Cerveau pour 1M tokens d'entrée (défaut GPT-5.6 Sol).
-            brain_output_price_per_1m: Prix du Cerveau pour 1M tokens de sortie (défaut GPT-5.6 Sol).
+            worker_input_price_per_1m: Prix du Worker pour 1M tokens
+                d'entrée (défaut GPT-4o-mini).
+            worker_output_price_per_1m: Prix du Worker pour 1M tokens
+                de sortie (défaut GPT-4o-mini).
+            brain_input_price_per_1m: Prix du Cerveau pour 1M tokens
+                d'entrée (défaut GPT-5.6 Sol).
+            brain_output_price_per_1m: Prix du Cerveau pour 1M tokens
+                de sortie (défaut GPT-5.6 Sol).
 
         Returns:
             Dictionnaire avec les coûts estimés, les économies et le facteur de réduction.
@@ -200,16 +204,14 @@ class MetricsCollector:
         total_out = self.session.total_tokens_output
 
         # Coût réel : Worker
-        worker_cost = (
-            (total_in / 1_000_000) * worker_input_price_per_1m
-            + (total_out / 1_000_000) * worker_output_price_per_1m
-        )
+        worker_cost = (total_in / 1_000_000) * worker_input_price_per_1m + (
+            total_out / 1_000_000
+        ) * worker_output_price_per_1m
 
         # Coût hypothétique : si le Cerveau avait tout fait
-        brain_cost = (
-            (total_in / 1_000_000) * brain_input_price_per_1m
-            + (total_out / 1_000_000) * brain_output_price_per_1m
-        )
+        brain_cost = (total_in / 1_000_000) * brain_input_price_per_1m + (
+            total_out / 1_000_000
+        ) * brain_output_price_per_1m
 
         savings = brain_cost - worker_cost
         savings_percent = (savings / brain_cost * 100) if brain_cost > 0 else 0.0
@@ -240,4 +242,3 @@ class MetricsCollector:
     def reset(self) -> None:
         """Réinitialise toutes les métriques."""
         self.session = SessionMetrics()
-

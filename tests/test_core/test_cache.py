@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import time
 
-import pytest
-
 from nexus_worker.core.cache import ResultCache
 
 
@@ -135,7 +133,7 @@ class TestResultCacheStats:
         """Les stats doivent refléter les hits et misses."""
         cache = ResultCache()
         cache.set("key", "val")
-        cache.get("key")   # hit
+        cache.get("key")  # hit
         cache.get("miss")  # miss
         stats = cache.stats()
         assert stats["hits"] == 1

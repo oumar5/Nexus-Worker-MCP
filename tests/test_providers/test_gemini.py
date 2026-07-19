@@ -28,6 +28,7 @@ class TestGeminiAdapterInit:
         with patch.dict("sys.modules", {"google": None, "google.genai": None}):
             with pytest.raises((ImportError, Exception)):
                 from nexus_worker.providers.gemini_ import GeminiAdapter
+
                 GeminiAdapter(gemini_config)
 
     def test_get_info(self, gemini_config: WorkerConfig) -> None:
@@ -35,10 +36,12 @@ class TestGeminiAdapterInit:
         mock_genai = MagicMock()
         mock_genai.Client.return_value = MagicMock()
 
-        with patch.dict("sys.modules", {"google.genai": mock_genai, "google": MagicMock(genai=mock_genai)}):
+        sys_mods = {"google.genai": mock_genai, "google": MagicMock(genai=mock_genai)}
+        with patch.dict("sys.modules", sys_mods):
             with patch("google.genai.Client", mock_genai.Client):
                 try:
                     from nexus_worker.providers.gemini_ import GeminiAdapter
+
                     adapter = GeminiAdapter(gemini_config)
                     info = adapter.get_info()
                     assert info["provider"] == "gemini"
@@ -53,8 +56,8 @@ class TestGeminiAdapterHandleError:
     def test_handle_auth_error(self, gemini_config: WorkerConfig) -> None:
         """Les erreurs d'authentification doivent lever WorkerAuthError."""
         try:
-            from nexus_worker.providers.gemini_ import GeminiAdapter
             from nexus_worker.core.errors import WorkerAuthError
+            from nexus_worker.providers.gemini_ import GeminiAdapter
 
             mock_genai = MagicMock()
             mock_genai.Client.return_value = MagicMock()
@@ -72,8 +75,8 @@ class TestGeminiAdapterHandleError:
     def test_handle_rate_limit_error(self, gemini_config: WorkerConfig) -> None:
         """Les erreurs de quota doivent lever WorkerRateLimitError."""
         try:
-            from nexus_worker.providers.gemini_ import GeminiAdapter
             from nexus_worker.core.errors import WorkerRateLimitError
+            from nexus_worker.providers.gemini_ import GeminiAdapter
 
             adapter = GeminiAdapter.__new__(GeminiAdapter)
             adapter._config = gemini_config
@@ -87,8 +90,8 @@ class TestGeminiAdapterHandleError:
     def test_handle_timeout_error(self, gemini_config: WorkerConfig) -> None:
         """Les erreurs de timeout doivent lever WorkerTimeoutError."""
         try:
-            from nexus_worker.providers.gemini_ import GeminiAdapter
             from nexus_worker.core.errors import WorkerTimeoutError
+            from nexus_worker.providers.gemini_ import GeminiAdapter
 
             adapter = GeminiAdapter.__new__(GeminiAdapter)
             adapter._config = gemini_config
@@ -102,8 +105,8 @@ class TestGeminiAdapterHandleError:
     def test_handle_unknown_error(self, gemini_config: WorkerConfig) -> None:
         """Les erreurs inconnues doivent lever WorkerUnavailableError."""
         try:
-            from nexus_worker.providers.gemini_ import GeminiAdapter
             from nexus_worker.core.errors import WorkerUnavailableError
+            from nexus_worker.providers.gemini_ import GeminiAdapter
 
             adapter = GeminiAdapter.__new__(GeminiAdapter)
             adapter._config = gemini_config
@@ -121,4 +124,5 @@ class TestGeminiFactoryRegistration:
     def test_gemini_in_registry(self) -> None:
         """Le provider 'gemini' doit être dans le registre."""
         from nexus_worker.providers.factory import list_providers
+
         assert "gemini" in list_providers()

@@ -9,7 +9,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-
 # Répertoire par défaut des templates (à côté de ce fichier)
 _DEFAULT_TEMPLATES_DIR = Path(__file__).parent / "templates"
 
@@ -66,9 +65,7 @@ class PromptEngine:
         """
         if not self.templates_dir.is_dir():
             return []
-        return sorted(
-            p.stem for p in self.templates_dir.glob("*.md")
-        )
+        return sorted(p.stem for p in self.templates_dir.glob("*.md"))
 
     def reload(self) -> None:
         """Vide le cache pour forcer le rechargement des templates."""
@@ -90,8 +87,7 @@ class PromptEngine:
             path = self.templates_dir / f"{tool_name}.md"
             if not path.is_file():
                 raise FileNotFoundError(
-                    f"Template introuvable: {path}. "
-                    f"Templates disponibles: {self.list_templates()}"
+                    f"Template introuvable: {path}. Templates disponibles: {self.list_templates()}"
                 )
             self._cache[tool_name] = path.read_text(encoding="utf-8")
         return self._cache[tool_name]

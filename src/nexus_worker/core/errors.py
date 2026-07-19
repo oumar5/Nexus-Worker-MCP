@@ -80,9 +80,7 @@ RETRYABLE_ERRORS: tuple[type[Exception], ...] = (
     OSError,
 )
 
-FATAL_ERRORS: tuple[type[Exception], ...] = (
-    WorkerAuthError,
-)
+FATAL_ERRORS: tuple[type[Exception], ...] = (WorkerAuthError,)
 
 
 # ─── Retry avec backoff exponentiel ──────────────────────────────────────────
@@ -122,7 +120,11 @@ async def with_retry(
             # Erreurs fatales : pas de retry
             logger.error(
                 f"Erreur fatale (pas de retry): {e}",
-                extra={"event": "fatal_error", "attempt": attempt + 1, "error_type": type(e).__name__},
+                extra={
+                    "event": "fatal_error",
+                    "attempt": attempt + 1,
+                    "error_type": type(e).__name__,
+                },
             )
             raise
 
@@ -131,14 +133,22 @@ async def with_retry(
             if attempt == max_retries:
                 logger.error(
                     f"Échec après {max_retries + 1} tentatives: {e}",
-                    extra={"event": "retry_exhausted", "attempt": attempt + 1, "error_type": type(e).__name__},
+                    extra={
+                        "event": "retry_exhausted",
+                        "attempt": attempt + 1,
+                        "error_type": type(e).__name__,
+                    },
                 )
                 break
 
             delay = min(base_delay * (exponential_base**attempt), max_delay)
             logger.warning(
                 f"Tentative {attempt + 1} échouée, retry dans {delay:.1f}s: {e}",
-                extra={"event": "retry", "attempt": attempt + 1, "error_type": type(e).__name__},
+                extra={
+                    "event": "retry",
+                    "attempt": attempt + 1,
+                    "error_type": type(e).__name__,
+                },
             )
             await asyncio.sleep(delay)
 
@@ -146,7 +156,11 @@ async def with_retry(
             # Erreurs inattendues : pas de retry
             logger.error(
                 f"Erreur inattendue: {e}",
-                extra={"event": "unexpected_error", "attempt": attempt + 1, "error_type": type(e).__name__},
+                extra={
+                    "event": "unexpected_error",
+                    "attempt": attempt + 1,
+                    "error_type": type(e).__name__,
+                },
             )
             raise WorkerError(str(e), error_type="unexpected") from e
 
@@ -233,12 +247,33 @@ def format_error_for_brain(
         Dictionnaire avec le statut, le type d'erreur, le message et la suggestion.
     """
     suggestions = {
-        "timeout": "Le worker n'a pas répondu à temps. Tu peux retenter ou demander à l'utilisateur de vérifier la connexion.",
-        "auth_error": "La clé API du worker est invalide. Demande à l'utilisateur de vérifier WORKER_API_KEY dans le .env.",
-        "rate_limit": "Le quota d'appels API est dépassé. Attends quelques instants ou demande à l'utilisateur de vérifier son quota.",
-        "unavailable": "Le worker est injoignable. Tu peux tenter de réaliser la tâche toi-même ou demander à l'utilisateur de vérifier la configuration.",
-        "tool_rate_limited": "Cet outil a été appelé trop de fois. Essaie une approche différente.",
-        "retry_exhausted": "Le worker a échoué après plusieurs tentatives. Tu peux tenter de réaliser la tâche toi-même.",
+        "timeout": (
+            "Le worker n'a pas répondu à temps. "
+            "Tu peux retenter ou demander à l'utilisateur "
+            "de vérifier la connexion."
+        ),
+        "auth_error": (
+            "La clé API du worker est invalide. "
+            "Demande à l'utilisateur de vérifier "
+            "WORKER_API_KEY dans le .env."
+        ),
+        "rate_limit": (
+            "Le quota d'appels API est dépassé. "
+            "Attends quelques instants ou demande à "
+            "l'utilisateur de vérifier son quota."
+        ),
+        "unavailable": (
+            "Le worker est injoignable. Tu peux tenter de "
+            "réaliser la tâche toi-même ou demander à "
+            "l'utilisateur de vérifier la configuration."
+        ),
+        "tool_rate_limited": (
+            "Cet outil a été appelé trop de fois. Essaie une approche différente."
+        ),
+        "retry_exhausted": (
+            "Le worker a échoué après plusieurs tentatives. "
+            "Tu peux tenter de réaliser la tâche toi-même."
+        ),
     }
 
     return {

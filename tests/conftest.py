@@ -37,14 +37,17 @@ def mock_response() -> WorkerResponse:
 def mock_provider(mock_response: WorkerResponse) -> AsyncMock:
     """Provider Worker simulé qui retourne toujours la mock_response."""
     from unittest.mock import MagicMock
+
     provider = AsyncMock()
     provider.complete.return_value = mock_response
     provider.health_check.return_value = True
-    provider.get_info = MagicMock(return_value={
-        "provider": "mock",
-        "model": "test-model",
-        "endpoint": "http://localhost:0",
-    })
+    provider.get_info = MagicMock(
+        return_value={
+            "provider": "mock",
+            "model": "test-model",
+            "endpoint": "http://localhost:0",
+        }
+    )
     return provider
 
 

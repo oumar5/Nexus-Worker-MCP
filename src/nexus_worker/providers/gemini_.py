@@ -164,13 +164,45 @@ class GeminiAdapter:
         error_str = str(error).lower()
         error_type = type(error).__name__
 
-        if "api_key" in error_str or "permission" in error_str or "401" in error_str or "403" in error_str:
-            raise WorkerAuthError(f"Clé API Gemini invalide: {error}") from error
-        elif "quota" in error_str or "429" in error_str or "rate" in error_str:
-            raise WorkerRateLimitError(f"Quota Gemini dépassé: {error}") from error
+        if any(
+            k in error_str
+            for k in (
+                "api_key",
+                "permission",
+                "401",
+                "403",
+            )
+        ):
+            raise WorkerAuthError(
+                f"Clé API Gemini invalide: {error}",
+            ) from error
+        elif any(
+            k in error_str
+            for k in (
+                "quota",
+                "429",
+                "rate",
+            )
+        ):
+            raise WorkerRateLimitError(
+                f"Quota Gemini dépassé: {error}",
+            ) from error
         elif "timeout" in error_str or "deadline" in error_str:
-            raise WorkerTimeoutError(f"Timeout Gemini: {error}") from error
-        elif "connection" in error_str or "network" in error_str or "unavailable" in error_str:
-            raise WorkerUnavailableError(f"Connexion Gemini impossible: {error}") from error
+            raise WorkerTimeoutError(
+                f"Timeout Gemini: {error}",
+            ) from error
+        elif any(
+            k in error_str
+            for k in (
+                "connection",
+                "network",
+                "unavailable",
+            )
+        ):
+            raise WorkerUnavailableError(
+                f"Connexion Gemini impossible: {error}",
+            ) from error
         else:
-            raise WorkerUnavailableError(f"Erreur Gemini inattendue ({error_type}): {error}") from error
+            raise WorkerUnavailableError(
+                f"Erreur Gemini inattendue ({error_type}): {error}",
+            ) from error

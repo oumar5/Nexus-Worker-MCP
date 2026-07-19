@@ -6,15 +6,12 @@ et gère optionnellement le provider de secours.
 
 from __future__ import annotations
 
-from typing import Any
-
 from nexus_worker.config import Config, WorkerConfig
 from nexus_worker.providers.anthropic_ import AnthropicAdapter
 from nexus_worker.providers.base import WorkerProvider
 from nexus_worker.providers.gemini_ import GeminiAdapter
 from nexus_worker.providers.ollama_ import OllamaAdapter
 from nexus_worker.providers.openai_ import OpenAIAdapter
-
 
 # Registre des adaptateurs disponibles
 _REGISTRY: dict[str, type] = {
@@ -51,10 +48,7 @@ def create_provider(config: WorkerConfig) -> WorkerProvider:
 
     if provider_name not in _REGISTRY:
         available = ", ".join(sorted(_REGISTRY.keys()))
-        raise ValueError(
-            f"Provider inconnu: '{provider_name}'. "
-            f"Valeurs possibles: {available}"
-        )
+        raise ValueError(f"Provider inconnu: '{provider_name}'. Valeurs possibles: {available}")
 
     adapter_class = _REGISTRY[provider_name]
     return adapter_class(config)

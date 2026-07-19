@@ -40,9 +40,10 @@ class OpenAIAdapter:
         if config.api_version:
             # Mode Azure OpenAI (avec support APIM)
             is_apim = "azure-api.net" in config.api_base_url
-            
+
             if is_apim:
-                # L'API Gateway n'attend pas de segment /openai/, on forge l'URL avec AsyncOpenAI standard
+                # L'API Gateway n'attend pas de segment /openai/,
+                # on forge l'URL avec AsyncOpenAI standard
                 base_url = f"{config.api_base_url.rstrip('/')}/deployments/{self._model}"
                 self._client = AsyncOpenAI(
                     base_url=base_url,

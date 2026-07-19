@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import sys
 
 
 def main() -> None:
@@ -81,7 +80,7 @@ async def _run_health_check(env_file: str) -> None:
         print(f"  Mode:      {info['mode']}")
 
     # Health check
-    print(f"\n  Connexion API...", end=" ")
+    print("\n  Connexion API...", end=" ")
     try:
         is_healthy = await primary.health_check()
         if is_healthy:
@@ -106,18 +105,18 @@ async def _run_health_check(env_file: str) -> None:
 
     # Fallback
     if fallback:
-        print(f"\n  Fallback Provider:")
+        print("\n  Fallback Provider:")
         fb_info = fallback.get_info()
         print(f"    Provider: {fb_info.get('provider', 'unknown')}")
         print(f"    Model:    {fb_info.get('model', 'unknown')}")
-        print(f"    Health:   ", end="")
+        print("    Health:   ", end="")
         try:
             fb_healthy = await fallback.health_check()
             print("[OK]" if fb_healthy else "[Échec]")
         except Exception:
             print("[Erreur]")
     else:
-        print(f"\n  Fallback:  Non configuré")
+        print("\n  Fallback:  Non configuré")
 
     # Providers disponibles
     print(f"\n  Providers disponibles: {', '.join(list_providers())}")

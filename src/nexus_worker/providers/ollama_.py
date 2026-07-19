@@ -79,8 +79,7 @@ class OllamaAdapter:
             raise WorkerTimeoutError(f"Timeout Ollama: {e}") from e
         except httpx.ConnectError as e:
             raise WorkerUnavailableError(
-                f"Ollama injoignable sur {self._base_url}. "
-                f"Vérifiez que Ollama est lancé: {e}"
+                f"Ollama injoignable sur {self._base_url}. Vérifiez que Ollama est lancé: {e}"
             ) from e
         except httpx.HTTPStatusError as e:
             raise WorkerUnavailableError(f"Erreur Ollama HTTP {e.response.status_code}: {e}") from e

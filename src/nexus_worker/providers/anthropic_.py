@@ -36,9 +36,12 @@ class AnthropicAdapter:
         """
         self._config = config
         self._model = config.model_name
+        base_url = config.api_base_url
+        if base_url == "https://api.openai.com/v1":
+            base_url = None
         self._client = AsyncAnthropic(
             api_key=config.api_key,
-            base_url=config.api_base_url if config.api_base_url != "https://api.openai.com/v1" else None,
+            base_url=base_url,
             timeout=config.timeout_seconds,
         )
 

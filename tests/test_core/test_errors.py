@@ -67,6 +67,7 @@ class TestWithRetry:
     @pytest.mark.asyncio
     async def test_exhausted_retries_raises(self) -> None:
         """Vérifie qu'un échec total après tous les retries lève une WorkerError."""
+
         async def always_fail():
             raise WorkerUnavailableError("down")
 

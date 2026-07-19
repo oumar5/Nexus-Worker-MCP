@@ -5,10 +5,10 @@ from __future__ import annotations
 import pytest
 
 from nexus_worker.config import WorkerConfig
-from nexus_worker.providers.factory import create_provider, list_providers
-from nexus_worker.providers.openai_ import OpenAIAdapter
 from nexus_worker.providers.anthropic_ import AnthropicAdapter
+from nexus_worker.providers.factory import create_provider, list_providers
 from nexus_worker.providers.ollama_ import OllamaAdapter
+from nexus_worker.providers.openai_ import OpenAIAdapter
 
 
 class TestProviderFactory:

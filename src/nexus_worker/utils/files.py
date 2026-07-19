@@ -36,10 +36,7 @@ def is_path_allowed(file_path: Path, allowed_paths: list[Path]) -> bool:
         True si le fichier est dans un répertoire autorisé.
     """
     resolved = file_path.resolve()
-    return any(
-        resolved == allowed or allowed in resolved.parents
-        for allowed in allowed_paths
-    )
+    return any(resolved == allowed or allowed in resolved.parents for allowed in allowed_paths)
 
 
 def read_file_safe(

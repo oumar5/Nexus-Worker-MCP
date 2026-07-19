@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from nexus_worker.tools.review import worker_review_code
 from nexus_worker.core.errors import WorkerError
+from nexus_worker.tools.review import worker_review_code
 
 
 @pytest.fixture
@@ -58,7 +58,6 @@ def mock_log_tool_call():
 
 @pytest.mark.asyncio
 class TestWorkerReviewCode:
-
     async def test_happy_path_returns_success(
         self,
         mock_provider,
@@ -70,7 +69,10 @@ class TestWorkerReviewCode:
         mock_log_tool_call,
     ) -> None:
         """Doit retourner un status success avec une revue JSON parsée."""
-        review_json = '{"summary": "Bon code.", "bugs": [], "security": [], "performance": [], "maintainability": [], "style": []}'
+        review_json = (
+            '{"summary": "Bon code.", "bugs": [], "security": [], '
+            '"performance": [], "maintainability": [], "style": []}'
+        )
         mock_read_file_safe.return_value = ("def foo(): pass", 1)
         mock_with_retry.return_value = MagicMock(
             content=review_json,
@@ -94,11 +96,14 @@ class TestWorkerReviewCode:
         assert data["review"]["summary"] == "Bon code."
         assert data["tokens_used"]["input"] == 100
 
-    @pytest.mark.parametrize("exception", [
-        FileNotFoundError("File not found"),
-        PermissionError("Permission denied"),
-        ValueError("Invalid path"),
-    ])
+    @pytest.mark.parametrize(
+        "exception",
+        [
+            FileNotFoundError("File not found"),
+            PermissionError("Permission denied"),
+            ValueError("Invalid path"),
+        ],
+    )
     async def test_file_errors_return_error_status(
         self,
         mock_provider,
@@ -193,7 +198,10 @@ class TestWorkerReviewCode:
         """Doit inclure le focus dans le prompt utilisateur."""
         mock_read_file_safe.return_value = ("code", 1)
         mock_with_retry.return_value = MagicMock(
-            content='{"summary": "ok", "bugs": [], "security": [], "performance": [], "maintainability": [], "style": []}',
+            content=(
+                '{"summary": "ok", "bugs": [], "security": [], '
+                '"performance": [], "maintainability": [], "style": []}'
+            ),
             model="m",
             tokens_input=10,
             tokens_output=20,

@@ -12,7 +12,7 @@ from mcp.server.fastmcp import FastMCP
 
 from nexus_worker.config import Config
 from nexus_worker.core.cache import ResultCache
-from nexus_worker.core.errors import CallTracker, ToolRateLimitedError
+from nexus_worker.core.errors import CallTracker
 from nexus_worker.core.logger import setup_logger
 from nexus_worker.core.metrics import MetricsCollector
 from nexus_worker.prompts.engine import PromptEngine
@@ -371,6 +371,4 @@ class NexusWorkerServer:
             self.logger.info(f"Démarrage en mode HTTP sur {host}:{port}...")
             self.mcp.run(transport="sse", host=host, port=port)
         else:
-            raise ValueError(
-                f"Transport inconnu: '{transport}'. Valeurs possibles: stdio, http"
-            )
+            raise ValueError(f"Transport inconnu: '{transport}'. Valeurs possibles: stdio, http")

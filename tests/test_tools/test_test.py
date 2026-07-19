@@ -1,9 +1,11 @@
-import pytest
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
-from pathlib import Path
-from nexus_worker.tools.test import worker_generate_tests
+
+import pytest
+
 from nexus_worker.core.errors import WorkerError
+from nexus_worker.tools.test import worker_generate_tests
+
 
 @pytest.fixture
 def mock_provider():
@@ -12,15 +14,18 @@ def mock_provider():
     provider.get_info = MagicMock(return_value={"provider": "mock_provider"})
     return provider
 
+
 @pytest.fixture
 def mock_prompt_engine():
     prompt_engine = MagicMock()
     prompt_engine.get_system_prompt = MagicMock(return_value="mock_system_prompt")
     return prompt_engine
 
+
 @pytest.fixture
 def mock_metrics():
     return MagicMock()
+
 
 @pytest.fixture
 def mock_call_tracker():
@@ -28,38 +33,57 @@ def mock_call_tracker():
     call_tracker.check_and_record = MagicMock()
     return call_tracker
 
+
 @pytest.fixture
 def mock_read_file_safe():
     with patch("nexus_worker.tools.test.read_file_safe") as mock:
         yield mock
+
 
 @pytest.fixture
 def mock_with_retry():
     with patch("nexus_worker.tools.test.with_retry") as mock:
         yield mock
 
+
 @pytest.fixture
 def mock_log_tool_call():
     with patch("nexus_worker.tools.test.log_tool_call") as mock:
         yield mock
 
+
 @pytest.mark.asyncio
 class TestWorkerGenerateTests:
-
-    @pytest.mark.parametrize("file_content, total_lines", [
-        ("def foo(): pass", 1),
-        ("def bar():\n    pass", 2)
-    ])
-    async def test_worker_generate_tests_happy_path(self, mock_provider, mock_prompt_engine, mock_metrics, mock_call_tracker, mock_read_file_safe, mock_with_retry, mock_log_tool_call, file_content, total_lines):
+    @pytest.mark.parametrize(
+        "file_content, total_lines", [("def foo(): pass", 1), ("def bar():\n    pass", 2)]
+    )
+    async def test_worker_generate_tests_happy_path(
+        self,
+        mock_provider,
+        mock_prompt_engine,
+        mock_metrics,
+        mock_call_tracker,
+        mock_read_file_safe,
+        mock_with_retry,
+        mock_log_tool_call,
+        file_content,
+        total_lines,
+    ):
         mock_read_file_safe.return_value = (file_content, total_lines)
-        mock_with_retry.return_value = MagicMock(content="mock_test_code", model="mock_model", tokens_input=10, tokens_output=20, latency_ms=100)
+        mock_with_retry.return_value = MagicMock(
+            content="mock_test_code",
+            model="mock_model",
+            tokens_input=10,
+            tokens_output=20,
+            latency_ms=100,
+        )
 
         result = await worker_generate_tests(
             file_path="test.py",
             provider=mock_provider,
             prompt_engine=mock_prompt_engine,
             metrics=mock_metrics,
-            call_tracker=mock_call_tracker
+            call_tracker=mock_call_tracker,
         )
 
         result_data = json.loads(result)
@@ -72,12 +96,23 @@ class TestWorkerGenerateTests:
         assert result_data["tokens_used"]["output"] == 20
         assert result_data["model"] == "mock_model"
 
-    @pytest.mark.parametrize("exception", [
-        FileNotFoundError("File not found"),
-        PermissionError("Permission denied"),
-        ValueError("Invalid value")
-    ])
-    async def test_worker_generate_tests_file_errors(self, mock_provider, mock_prompt_engine, mock_metrics, mock_call_tracker, mock_read_file_safe, exception):
+    @pytest.mark.parametrize(
+        "exception",
+        [
+            FileNotFoundError("File not found"),
+            PermissionError("Permission denied"),
+            ValueError("Invalid value"),
+        ],
+    )
+    async def test_worker_generate_tests_file_errors(
+        self,
+        mock_provider,
+        mock_prompt_engine,
+        mock_metrics,
+        mock_call_tracker,
+        mock_read_file_safe,
+        exception,
+    ):
         mock_read_file_safe.side_effect = exception
 
         result = await worker_generate_tests(
@@ -85,7 +120,7 @@ class TestWorkerGenerateTests:
             provider=mock_provider,
             prompt_engine=mock_prompt_engine,
             metrics=mock_metrics,
-            call_tracker=mock_call_tracker
+            call_tracker=mock_call_tracker,
         )
 
         result_data = json.loads(result)
@@ -94,9 +129,25 @@ class TestWorkerGenerateTests:
         assert result_data["message"] == str(exception)
 
     @pytest.mark.parametrize("focus_functions", ["foo", "bar,baz"])
-    async def test_worker_generate_tests_with_focus_functions(self, mock_provider, mock_prompt_engine, mock_metrics, mock_call_tracker, mock_read_file_safe, mock_with_retry, mock_log_tool_call, focus_functions):
+    async def test_worker_generate_tests_with_focus_functions(
+        self,
+        mock_provider,
+        mock_prompt_engine,
+        mock_metrics,
+        mock_call_tracker,
+        mock_read_file_safe,
+        mock_with_retry,
+        mock_log_tool_call,
+        focus_functions,
+    ):
         mock_read_file_safe.return_value = ("def foo(): pass", 1)
-        mock_with_retry.return_value = MagicMock(content="mock_test_code", model="mock_model", tokens_input=10, tokens_output=20, latency_ms=100)
+        mock_with_retry.return_value = MagicMock(
+            content="mock_test_code",
+            model="mock_model",
+            tokens_input=10,
+            tokens_output=20,
+            latency_ms=100,
+        )
 
         result = await worker_generate_tests(
             file_path="test.py",
@@ -104,7 +155,7 @@ class TestWorkerGenerateTests:
             prompt_engine=mock_prompt_engine,
             metrics=mock_metrics,
             call_tracker=mock_call_tracker,
-            focus_functions=focus_functions
+            focus_functions=focus_functions,
         )
 
         result_data = json.loads(result)
@@ -117,7 +168,15 @@ class TestWorkerGenerateTests:
         assert result_data["tokens_used"]["output"] == 20
         assert result_data["model"] == "mock_model"
 
-    async def test_worker_generate_tests_worker_error(self, mock_provider, mock_prompt_engine, mock_metrics, mock_call_tracker, mock_read_file_safe, mock_with_retry):
+    async def test_worker_generate_tests_worker_error(
+        self,
+        mock_provider,
+        mock_prompt_engine,
+        mock_metrics,
+        mock_call_tracker,
+        mock_read_file_safe,
+        mock_with_retry,
+    ):
         mock_read_file_safe.return_value = ("def foo(): pass", 1)
         mock_with_retry.side_effect = WorkerError("Worker failed")
 
@@ -126,7 +185,7 @@ class TestWorkerGenerateTests:
             provider=mock_provider,
             prompt_engine=mock_prompt_engine,
             metrics=mock_metrics,
-            call_tracker=mock_call_tracker
+            call_tracker=mock_call_tracker,
         )
 
         result_data = json.loads(result)

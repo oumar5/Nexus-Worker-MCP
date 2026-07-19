@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from nexus_worker.tools.document import worker_document_code
 from nexus_worker.core.errors import WorkerError
+from nexus_worker.tools.document import worker_document_code
 
 
 @pytest.fixture
@@ -58,7 +58,6 @@ def mock_log_tool_call():
 
 @pytest.mark.asyncio
 class TestWorkerDocumentCode:
-
     async def test_happy_path_returns_documented_code(
         self,
         mock_provider,
@@ -95,11 +94,14 @@ class TestWorkerDocumentCode:
         assert data["tokens_used"]["input"] == 80
         assert data["tokens_used"]["output"] == 120
 
-    @pytest.mark.parametrize("exception", [
-        FileNotFoundError("File not found"),
-        PermissionError("Permission denied"),
-        ValueError("Invalid"),
-    ])
+    @pytest.mark.parametrize(
+        "exception",
+        [
+            FileNotFoundError("File not found"),
+            PermissionError("Permission denied"),
+            ValueError("Invalid"),
+        ],
+    )
     async def test_file_errors_return_error_status(
         self,
         mock_provider,
