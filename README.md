@@ -94,6 +94,11 @@ python -m nexus_worker
 | [Analyse FinOps](docs/finops.md) | Analyse financière, économie de tokens et ROI |
 | [Contributing](docs/contributing.md) | Guide de contribution |
 
+## Roadmap (v2.0)
+
+- **Tool-based Routing (Routage par Outil)** : Possibilité de configurer un modèle spécifique pour chaque outil (ex: `WORKER_GENERATE_CODE_MODEL=claude-3-5-sonnet` pour le code, et `WORKER_REVIEW_CODE_MODEL=gpt-4o-mini` pour la relecture) afin de pousser l'optimisation des coûts à son maximum.
+- **Support de nouveaux providers** : Intégration de nouveaux LLMs selon les besoins de la communauté.
+
 ## Licence
 
 MIT — Voir [LICENSE](LICENSE)
