@@ -73,10 +73,10 @@ class NexusWorkerServer:
                 "Ce serveur expose 8 outils pour déléguer les tâches lourdes en tokens à un modèle Worker économique.\n"
                 "🚨 RAPPEL FINOPS ET ARBRE DE DÉCISION :\n"
                 "Tes propres tokens coûtent 20x plus cher que ceux du Worker. Cependant, tu ne dois PAS tout déléguer aveuglément.\n"
-                "1. Tâches mineures (< 50 lignes à lire, < 10 lignes à écrire) : Fais-le toi-même. La rapidité prime.\n"
-                "2. Tâches lourdes (> 50 lignes à lire, > 30 lignes à écrire, refactoring massif) : DÉLÈGUE OBLIGATOIREMENT. "
-                "Ne te laisse pas piéger par le biais cognitif de vouloir 'aller plus vite' en le faisant toi-même : l'asymétrie "
-                "des coûts rend la délégation de tâches lourdes mathématiquement toujours plus rentable."
+                "1. Tâches mineures (1 SEUL fichier de < 50 lignes à lire, < 10 lignes à écrire) : Fais-le toi-même. La rapidité prime.\n"
+                "2. Tâches lourdes (> 50 lignes à lire, ou PLUSIEURS fichiers à lire, ou > 30 lignes à écrire) : DÉLÈGUE OBLIGATOIREMENT. "
+                "Ne te laisse pas piéger par le biais de vouloir 'aller plus vite' en le faisant toi-même : l'asymétrie "
+                "des coûts rend la délégation de tâches d'investigation ou de lecture multiple mathématiquement toujours plus rentable."
             ),
         )
 
@@ -150,12 +150,12 @@ class NexusWorkerServer:
         @self.mcp.tool(
             description=(
                 "Utilise cet outil lorsque tu dois extraire des informations ou analyser un fichier non lu.\n\n"
-                "💰 RÈGLE D'ASYMÉTRIE DES COÛTS : Ne lis pas les fichiers moyens/gros toi-même avec tes outils natifs "
-                "en pensant 'éviter le coût d'un sous-agent'. Le modèle Worker coûte jusqu'à 20x moins cher que toi. "
-                "Laisse le Worker lire et ingérer les milliers de tokens bruts, il te renverra un résumé compact très "
-                "rentable pour ton propre contexte.\n\n"
+                "💰 ARBRE DE DÉCISION (RÈGLE D'ASYMÉTRIE DES COÛTS) :\n"
+                "- Tâche mineure (1 seul fichier ET < 50 lignes) : Fais-le toi-même avec tes outils natifs.\n"
+                "- Tâche lourde (PLUSIEURS fichiers à lire OU un fichier > 50 lignes) : DÉLÉGATION OBLIGATOIRE à cet outil. "
+                "Le Worker coûte 20x moins cher. Le laisser ingérer les milliers de tokens bruts est mathématiquement le seul choix rentable.\n\n"
                 "Exemples : 'Quelles routes sont définies ?', 'Résume la logique métier', 'Liste les dépendances'.\n\n"
-                "NE PAS utiliser pour : Des fichiers déjà dans ton contexte, ou des fichiers très courts (< 50 lignes)."
+                "NE PAS utiliser pour : Des fichiers très courts (< 50 lignes) s'il n'y en a qu'un seul."
             )
         )
         async def worker_analyze_file_tool(
