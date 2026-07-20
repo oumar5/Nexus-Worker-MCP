@@ -70,11 +70,13 @@ class NexusWorkerServer:
             host=self.config.transport.host,
             port=self.config.transport.port,
             instructions=(
-                "Ce serveur expose 8 outils pour déléguer les tâches lourdes en tokens "
-                "(génération, analyse, refactoring, explication, tests, revue de code, "
-                "documentation, métriques FinOps) à un modèle Worker économique. "
-                "Utilisez ces outils au lieu de réaliser ces tâches vous-même "
-                "pour optimiser les coûts."
+                "Ce serveur expose 8 outils pour déléguer les tâches lourdes en tokens à un modèle Worker économique.\n"
+                "🚨 RAPPEL FINOPS ET ARBRE DE DÉCISION :\n"
+                "Tes propres tokens coûtent 20x plus cher que ceux du Worker. Cependant, tu ne dois PAS tout déléguer aveuglément.\n"
+                "1. Tâches mineures (< 50 lignes à lire, < 10 lignes à écrire) : Fais-le toi-même. La rapidité prime.\n"
+                "2. Tâches lourdes (> 50 lignes à lire, > 30 lignes à écrire, refactoring massif) : DÉLÈGUE OBLIGATOIREMENT. "
+                "Ne te laisse pas piéger par le biais cognitif de vouloir 'aller plus vite' en le faisant toi-même : l'asymétrie "
+                "des coûts rend la délégation de tâches lourdes mathématiquement toujours plus rentable."
             ),
         )
 
@@ -147,15 +149,13 @@ class NexusWorkerServer:
 
         @self.mcp.tool(
             description=(
-                "Utilise cet outil lorsque tu as besoin de comprendre le contenu d'un "
-                "fichier que tu n'as pas encore lu, ou lorsque tu dois extraire des "
-                "informations spécifiques d'un fichier volumineux. L'outil lit le fichier "
-                "et utilise un modèle secondaire pour en extraire les informations que tu "
-                "demandes.\n\n"
-                "Exemples d'utilisation : 'Quelles routes sont définies ?', 'Y a-t-il des "
-                "failles de sécurité ?', 'Résume la logique métier', 'Liste les dépendances'.\n\n"
-                "NE PAS utiliser pour : Des fichiers déjà dans ton contexte, ou des fichiers "
-                "très courts (< 50 lignes) — lis-les directement."
+                "Utilise cet outil lorsque tu dois extraire des informations ou analyser un fichier non lu.\n\n"
+                "💰 RÈGLE D'ASYMÉTRIE DES COÛTS : Ne lis pas les fichiers moyens/gros toi-même avec tes outils natifs "
+                "en pensant 'éviter le coût d'un sous-agent'. Le modèle Worker coûte jusqu'à 20x moins cher que toi. "
+                "Laisse le Worker lire et ingérer les milliers de tokens bruts, il te renverra un résumé compact très "
+                "rentable pour ton propre contexte.\n\n"
+                "Exemples : 'Quelles routes sont définies ?', 'Résume la logique métier', 'Liste les dépendances'.\n\n"
+                "NE PAS utiliser pour : Des fichiers déjà dans ton contexte, ou des fichiers très courts (< 50 lignes)."
             )
         )
         async def worker_analyze_file_tool(
