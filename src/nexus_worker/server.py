@@ -83,15 +83,16 @@ class NexusWorkerServer:
             port=self.config.transport.port,
             instructions=(
                 "Serveur d'optimisation de coûts. Il expose 8 outils qui délèguent les tâches "
-                "de code lourdes en tokens (analyse, revue, explication, documentation, génération, "
-                "refactoring, tests) à un modèle Worker économique, et te renvoient un résultat "
-                "structuré et compact.\n\n"
+                "de code lourdes en tokens (analyse, revue, explication, documentation, "
+                "génération, refactoring, tests) à un modèle Worker économique, et te "
+                "renvoient un résultat structuré et compact.\n\n"
                 "Quand utiliser ces outils : dès qu'une tâche implique de lire un fichier entier "
                 "pour le comprendre, ou de produire/réécrire du code. Ils évitent de charger le "
                 "contenu brut dans ton contexte.\n\n"
                 "Multi-fichiers : appeler l'outil une fois par fichier, puis synthétiser les "
                 "résultats compacts. Ne lis pas les fichiers toi-même pour une 'vue globale'.\n\n"
-                "Exception : un seul fichier de moins de ~50 lignes, tu peux le traiter directement."
+                "Exception : un seul fichier de moins de ~50 lignes, tu peux le traiter "
+                "directement."
             ),
         )
 
@@ -193,7 +194,8 @@ class NexusWorkerServer:
             description=(
                 "Refactorise un fichier via le Worker en une seule passe, en tenant compte de "
                 "son contexte. À utiliser pour un refactoring qui touche de nombreuses lignes.\n\n"
-                "Multi-fichiers (ex : 'refactorise tout le module') : appeler une fois par fichier.\n\n"
+                "Multi-fichiers (ex : 'refactorise tout le module') : appeler une fois par "
+                "fichier.\n\n"
                 "Option auto_save=True : écriture directe sur disque.\n\n"
                 "Ne pas utiliser pour changer une seule ligne."
             )
@@ -318,7 +320,8 @@ class NexusWorkerServer:
                 "Ajoute des docstrings à un fichier via le Worker, sans modifier la logique du "
                 "code. Connaît les conventions (Google, Numpy, JSDoc).\n\n"
                 "Déclencheurs : 'documente', 'ajoute des docstrings', 'commente le code'.\n\n"
-                "Multi-fichiers (ex : 'documente tout le projet') : appeler une fois par fichier.\n\n"
+                "Multi-fichiers (ex : 'documente tout le projet') : appeler une fois par "
+                "fichier.\n\n"
                 "Paramètre style optionnel : 'google', 'numpy', 'jsdoc', etc."
             )
         )
