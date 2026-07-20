@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from nexus_worker.core.cache import ResultCache
 from nexus_worker.core.errors import WorkerError, format_error_for_brain, with_retry
 from nexus_worker.core.logger import log_tool_call
 from nexus_worker.core.metrics import MetricsCollector
@@ -29,6 +30,7 @@ async def worker_analyze_file(
     max_retries: int = 3,
     max_tokens: int = 4096,
     focus_lines: str = "",
+    cache: ResultCache | None = None,
 ) -> str:
     """Analyse un fichier en déléguant la lecture au Worker.
 
@@ -43,6 +45,7 @@ async def worker_analyze_file(
         max_retries: Nombre max de tentatives.
         max_tokens: Limite de tokens de sortie.
         focus_lines: Plage de lignes à cibler (ex: "100-200").
+        cache: Cache de résultats optionnel.
 
     Returns:
         Résultat JSON stringifié avec l'analyse ou l'erreur.
@@ -70,6 +73,13 @@ async def worker_analyze_file(
         user_prompt += f"Lignes ciblées: {focus_lines}\n\n"
     user_prompt += f"Question: {question}\n\nCode:\n{content}"
 
+    # Vérifier le cache
+    if cache:
+        cache_key = ResultCache.make_key(content, user_prompt)
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+
     try:
         response = await with_retry(
             lambda: provider.complete(system_prompt, user_prompt, max_tokens=max_tokens),
@@ -94,7 +104,7 @@ async def worker_analyze_file(
             success=True,
         )
 
-        return json.dumps(
+        result = json.dumps(
             {
                 "status": "success",
                 "analysis": response.content,
@@ -107,6 +117,11 @@ async def worker_analyze_file(
             },
             ensure_ascii=False,
         )
+
+        if cache:
+            cache.set(cache_key, result)
+
+        return result
 
     except WorkerError as e:
         metrics.record_call(tool_name=tool_name, success=False)

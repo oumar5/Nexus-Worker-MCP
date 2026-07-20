@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from nexus_worker.core.cache import ResultCache
 from nexus_worker.core.errors import WorkerError, format_error_for_brain, with_retry
 from nexus_worker.core.logger import log_tool_call
 from nexus_worker.core.metrics import MetricsCollector
@@ -28,6 +29,7 @@ async def worker_explain_code(
     max_tokens: int = 4096,
     focus: str = "",
     detail_level: str = "detailed",
+    cache: ResultCache | None = None,
 ) -> str:
     """Explique le code d'un fichier en déléguant au Worker.
 
@@ -42,6 +44,7 @@ async def worker_explain_code(
         max_tokens: Limite de tokens de sortie.
         focus: Classe, fonction ou section spécifique à cibler.
         detail_level: Niveau de détail (summary, detailed, line-by-line).
+        cache: Cache de résultats optionnel.
 
     Returns:
         Résultat JSON stringifié avec l'explication ou l'erreur.
@@ -69,6 +72,13 @@ async def worker_explain_code(
         user_prompt += f"Focus spécifique: {focus}\n\n"
     user_prompt += f"Code:\n{content}"
 
+    # Vérifier le cache
+    if cache:
+        cache_key = ResultCache.make_key(content, user_prompt)
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+
     try:
         response = await with_retry(
             lambda: provider.complete(system_prompt, user_prompt, max_tokens=max_tokens),
@@ -93,7 +103,7 @@ async def worker_explain_code(
             success=True,
         )
 
-        return json.dumps(
+        result = json.dumps(
             {
                 "status": "success",
                 "explanation": response.content,
@@ -106,6 +116,11 @@ async def worker_explain_code(
             },
             ensure_ascii=False,
         )
+
+        if cache:
+            cache.set(cache_key, result)
+
+        return result
 
     except WorkerError as e:
         metrics.record_call(tool_name=tool_name, success=False)

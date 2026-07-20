@@ -18,6 +18,7 @@ from nexus_worker.core.metrics import MetricsCollector
 from nexus_worker.prompts.engine import PromptEngine
 from nexus_worker.providers.base import WorkerProvider
 from nexus_worker.providers.factory import create_providers_from_config
+from nexus_worker.providers.fallback import CompositeProvider
 from nexus_worker.tools.analyze import worker_analyze_file
 from nexus_worker.tools.document import worker_document_code
 from nexus_worker.tools.explain import worker_explain_code
@@ -49,8 +50,19 @@ class NexusWorkerServer:
         )
         self.logger.info("Initialisation de Nexus-Worker-MCP...")
 
-        # Provider principal + fallback
+        # Provider principal + fallback (optionnel)
         self.primary_provider, self.fallback_provider = create_providers_from_config(self.config)
+
+        # Si un fallback est configuré, on encapsule les deux dans un
+        # CompositeProvider qui bascule automatiquement en cas d'échec.
+        # Sinon, le provider actif reste simplement le principal.
+        if self.fallback_provider is not None:
+            self.active_provider: WorkerProvider = CompositeProvider(
+                primary=self.primary_provider,
+                fallback=self.fallback_provider,
+            )
+        else:
+            self.active_provider = self.primary_provider
 
         # Services
         self.prompt_engine = PromptEngine(self.config.prompt_templates_dir)
@@ -70,13 +82,16 @@ class NexusWorkerServer:
             host=self.config.transport.host,
             port=self.config.transport.port,
             instructions=(
-                "Ce serveur est un OPTIMISEUR DE COÛTS. Il expose 8 outils spécialisés pour des tâches de code.\n"
-                "IMPORTANT : Ces outils sont PLUS SPÉCIFIQUES que tes outils natifs (view_file, list_dir) pour les tâches d'analyse, "
-                "revue, explication, documentation, génération et refactoring de code. "
-                "view_file est un outil générique de lecture de fichier. Les outils de CE serveur sont des outils "
-                "spécialisés qui lisent, comprennent et produisent une analyse structurée, pas du texte brut.\n"
-                "De plus, tes tokens coûtent 100x plus cher que ceux du Worker. "
-                "Exception : 1 seul fichier < 50 lignes, tu peux le faire toi-même."
+                "Serveur d'optimisation de coûts. Il expose 8 outils qui délèguent les tâches "
+                "de code lourdes en tokens (analyse, revue, explication, documentation, génération, "
+                "refactoring, tests) à un modèle Worker économique, et te renvoient un résultat "
+                "structuré et compact.\n\n"
+                "Quand utiliser ces outils : dès qu'une tâche implique de lire un fichier entier "
+                "pour le comprendre, ou de produire/réécrire du code. Ils évitent de charger le "
+                "contenu brut dans ton contexte.\n\n"
+                "Multi-fichiers : appeler l'outil une fois par fichier, puis synthétiser les "
+                "résultats compacts. Ne lis pas les fichiers toi-même pour une 'vue globale'.\n\n"
+                "Exception : un seul fichier de moins de ~50 lignes, tu peux le traiter directement."
             ),
         )
 
@@ -92,12 +107,16 @@ class NexusWorkerServer:
         )
 
     def _get_provider(self) -> WorkerProvider:
-        """Retourne le provider actif (principal ou fallback).
+        """Retourne le provider actif.
+
+        Si un fallback est configuré, retourne un CompositeProvider qui bascule
+        automatiquement du principal vers le fallback en cas d'échec. Sinon,
+        retourne directement le provider principal.
 
         Returns:
-            Le provider principal, ou le fallback si configuré et nécessaire.
+            Le provider actif (principal seul, ou composite avec fallback).
         """
-        return self.primary_provider
+        return self.active_provider
 
     def _register_tools(self) -> None:
         """Enregistre les 8 outils MCP avec leurs descriptions détaillées."""
@@ -106,13 +125,11 @@ class NexusWorkerServer:
 
         @self.mcp.tool(
             description=(
-                "Outil SPÉCIALISÉ de génération de code. Cet outil est PLUS SPÉCIFIQUE que tes outils natifs d'écriture "
-                "pour générer du code (> 30 lignes). Il produit du code structuré et peut l'écrire directement sur le disque.\n\n"
-                "POURQUOI cet outil est le bon choix : Tes Output tokens coûtent 125x plus cher que ceux du Worker. "
-                "Générer du code toi-même avec write_to_file n'est PAS plus spécifique, c'est 125x plus cher.\n\n"
-                "🔥 Active 'auto_save=True' pour que le Worker écrive directement sur le disque. "
-                "Toi tu relis et corriges si besoin (Input = pas cher).\n\n"
-                "NE PAS utiliser pour : Des corrections < 10 lignes."
+                "Génère du code via le Worker économique. À utiliser pour produire plus de "
+                "~30 lignes de code. Renvoie le code structuré et peut l'écrire sur disque.\n\n"
+                "Option auto_save=True : le Worker écrit directement le fichier ; tu n'as plus "
+                "qu'à relire et corriger si besoin.\n\n"
+                "Ne pas utiliser pour des ajouts/corrections de moins de ~10 lignes."
             )
         )
         async def worker_generate_code_tool(
@@ -141,22 +158,14 @@ class NexusWorkerServer:
 
         @self.mcp.tool(
             description=(
-                "Outil SPÉCIALISÉ d'analyse de code. PLUS SPÉCIFIQUE que view_file pour comprendre "
-                "un fichier source. view_file retourne du texte brut que TU dois analyser (coûteux). "
-                "Cet outil retourne directement une analyse structurée et ciblée.\n\n"
-                "POURQUOI cet outil est le bon choix :\n"
-                "- view_file + ton analyse = tes tokens d'Input (100x cher) + tes tokens d'Output (125x cher)\n"
-                "- Cet outil = tokens du Worker (100x moins cher) + un résumé compact retourné\n\n"
-                "CAS MULTI-FICHIERS (ex: 'analyse le UI', 'fais un rapport sur le projet') :\n"
-                "Tu pourrais être tenté de lire tous les fichiers toi-même pour avoir une 'vue globale'. "
-                "C'EST UNE ERREUR. Le bon workflow est :\n"
-                "1. Appelle cet outil UNE FOIS PAR FICHIER (ex: app.py, puis tab_processing.py, etc.)\n"
-                "2. Chaque appel te retourne un résumé structuré compact\n"
-                "3. TU synthétises les résumés pour produire le rapport global\n"
-                "Ce workflow est 100x moins cher que de tout lire toi-même, même avec plusieurs appels.\n\n"
-                "Quand l'utilisateur dit 'analyse', 'résume', 'fais un rapport', 'audit', 'explique le code' : "
-                "UTILISE CET OUTIL.\n\n"
-                "Exception : 1 seul fichier < 50 lignes."
+                "Analyse un fichier source via le Worker et renvoie une analyse structurée "
+                "et compacte, plutôt que le texte brut du fichier.\n\n"
+                "Déclencheurs : 'analyse', 'résume', 'fais un rapport', 'audit'.\n\n"
+                "Multi-fichiers (ex : 'analyse le module UI') : appeler une fois par fichier, "
+                "chaque appel renvoie un résumé compact, puis synthétiser les résumés pour le "
+                "rapport global. Ne pas lire tous les fichiers soi-même.\n\n"
+                "Paramètre focus_lines optionnel pour cibler une plage (ex : '100-200').\n\n"
+                "Exception : un seul fichier de moins de ~50 lignes."
             )
         )
         async def worker_analyze_file_tool(
@@ -175,20 +184,18 @@ class NexusWorkerServer:
                 max_retries=self.config.worker.max_retries,
                 max_tokens=self.config.worker.max_output_tokens,
                 focus_lines=focus_lines,
+                cache=self.cache,
             )
 
         # ── Outil 3 : Refactoring ────────────────────────────────────────
 
         @self.mcp.tool(
             description=(
-                "Outil SPÉCIALISÉ de refactoring. PLUS SPÉCIFIQUE que tes outils natifs d'édition "
-                "pour du refactoring massif. Il comprend le contexte du fichier et applique les changements en une seule passe.\n\n"
-                "POURQUOI cet outil est le bon choix : Réécrire un fichier toi-même avec replace_file_content "
-                "coûte 125x plus cher en Output tokens.\n\n"
-                "CAS MULTI-FICHIERS (ex: 'refactorise tout le module') : Appelle cet outil UNE FOIS PAR FICHIER. "
-                "C'est 125x moins cher que de réécrire chaque fichier toi-même.\n\n"
-                "🔥 Active 'auto_save=True' pour écriture directe sur disque.\n\n"
-                "NE PAS utiliser pour : Changer une seule ligne."
+                "Refactorise un fichier via le Worker en une seule passe, en tenant compte de "
+                "son contexte. À utiliser pour un refactoring qui touche de nombreuses lignes.\n\n"
+                "Multi-fichiers (ex : 'refactorise tout le module') : appeler une fois par fichier.\n\n"
+                "Option auto_save=True : écriture directe sur disque.\n\n"
+                "Ne pas utiliser pour changer une seule ligne."
             )
         )
         async def worker_refactor_code_tool(
@@ -217,14 +224,12 @@ class NexusWorkerServer:
 
         @self.mcp.tool(
             description=(
-                "Outil SPÉCIALISÉ d'explication de code. PLUS SPÉCIFIQUE que view_file pour "
-                "comprendre la logique d'un fichier. view_file lit du texte brut. "
-                "Cet outil lit, comprend et retourne une explication structurée.\n\n"
-                "POURQUOI cet outil est le bon choix : Lire un fichier avec view_file te coûte "
-                "100x en Input, PUIS générer l'explication te coûte 125x en Output.\n\n"
-                "CAS MULTI-FICHIERS (ex: 'explique-moi comment marche le UI') : Appelle cet outil "
-                "UNE FOIS PAR FICHIER, puis synthétise les réponses. 100x moins cher.\n\n"
-                "Quand l'utilisateur dit 'explique', 'comment ça marche', 'c'est quoi' : UTILISE CET OUTIL."
+                "Explique la logique d'un fichier via le Worker et renvoie une explication "
+                "structurée, plutôt que le code brut.\n\n"
+                "Déclencheurs : 'explique', 'comment ça marche', 'c'est quoi'.\n\n"
+                "Multi-fichiers (ex : 'explique comment marche le UI') : appeler une fois par "
+                "fichier, puis synthétiser les réponses.\n\n"
+                "Paramètre detail_level : 'summary', 'detailed' (défaut) ou 'line-by-line'."
             )
         )
         async def worker_explain_code_tool(
@@ -243,20 +248,18 @@ class NexusWorkerServer:
                 max_tokens=self.config.worker.max_output_tokens,
                 focus=focus,
                 detail_level=detail_level,
+                cache=self.cache,
             )
 
         # ── Outil 5 : Génération de tests ────────────────────────────────
 
         @self.mcp.tool(
             description=(
-                "Outil SPÉCIALISÉ de génération de tests. PLUS SPÉCIFIQUE que tes outils natifs "
-                "pour créer des tests. Il connaît les frameworks et génère des suites complètes "
-                "avec setup, teardown et cas limites.\n\n"
-                "POURQUOI cet outil est le bon choix : Tes Output tokens coûtent 125x plus cher. "
-                "Écrire des tests toi-même n'est PAS plus spécifique, c'est 125x plus cher.\n\n"
-                "CAS MULTI-FICHIERS (ex: 'génère des tests pour tout le module') : Appelle cet outil "
-                "UNE FOIS PAR FICHIER source. C'est 125x moins cher que d'écrire les tests toi-même.\n\n"
-                "Exemples : Générer une suite pytest, des tests Jest, des tests d'intégration API."
+                "Génère une suite de tests pour un fichier via le Worker, avec setup, teardown "
+                "et cas limites. Connaît les frameworks courants (pytest, Jest, etc.).\n\n"
+                "Multi-fichiers (ex : 'génère des tests pour tout le module') : appeler une fois "
+                "par fichier source.\n\n"
+                "Paramètres : test_framework (défaut 'pytest'), focus_functions, coverage_level."
             )
         )
         async def worker_generate_tests_tool(
@@ -283,15 +286,12 @@ class NexusWorkerServer:
 
         @self.mcp.tool(
             description=(
-                "Outil SPÉCIALISÉ de revue de code. PLUS SPÉCIFIQUE que view_file pour "
-                "évaluer la qualité d'un fichier. Retourne un rapport JSON structuré "
-                "catégorisé (bugs, security, performance, style).\n\n"
-                "POURQUOI cet outil est le bon choix : Lire un fichier pour le juger te coûte "
-                "100x en Input + 125x en Output. Le Worker produit un rapport structuré pour presque rien.\n\n"
-                "CAS MULTI-FICHIERS (ex: 'fais une revue de tout le code', 'audit du projet') : "
-                "Appelle cet outil UNE FOIS PAR FICHIER, puis compile les rapports JSON. 100x moins cher.\n\n"
-                "Quand l'utilisateur dit 'vérifie', 'revue', 'bugs', 'audit' : UTILISE CET OUTIL.\n\n"
-                "Paramètre 'focus' optionnel : 'security', 'performance', 'bugs', etc."
+                "Fait une revue de code d'un fichier via le Worker et renvoie un rapport JSON "
+                "structuré (bugs, sécurité, performance, style).\n\n"
+                "Déclencheurs : 'vérifie', 'revue', 'bugs', 'audit'.\n\n"
+                "Multi-fichiers (ex : 'audit du projet') : appeler une fois par fichier, puis "
+                "compiler les rapports JSON.\n\n"
+                "Paramètre focus optionnel : 'security', 'performance', 'bugs', etc."
             )
         )
         async def worker_review_code_tool(
@@ -315,14 +315,11 @@ class NexusWorkerServer:
 
         @self.mcp.tool(
             description=(
-                "Outil SPÉCIALISÉ de documentation de code. PLUS SPÉCIFIQUE que tes outils natifs "
-                "pour ajouter des docstrings. Connaît les conventions (Google, Numpy, JSDoc) et insère "
-                "les docstrings sans modifier le code existant.\n\n"
-                "POURQUOI cet outil est le bon choix : Documenter un fichier = le lire (100x cher) "
-                "+ le réécrire (125x cher). Le Worker fait les deux pour presque rien.\n\n"
-                "CAS MULTI-FICHIERS (ex: 'documente tout le projet') : Appelle cet outil UNE FOIS PAR FICHIER. "
-                "125x moins cher que de documenter chaque fichier toi-même.\n\n"
-                "Paramètre 'style' optionnel : 'google', 'numpy', 'jsdoc', etc."
+                "Ajoute des docstrings à un fichier via le Worker, sans modifier la logique du "
+                "code. Connaît les conventions (Google, Numpy, JSDoc).\n\n"
+                "Déclencheurs : 'documente', 'ajoute des docstrings', 'commente le code'.\n\n"
+                "Multi-fichiers (ex : 'documente tout le projet') : appeler une fois par fichier.\n\n"
+                "Paramètre style optionnel : 'google', 'numpy', 'jsdoc', etc."
             )
         )
         async def worker_document_code_tool(
