@@ -12,11 +12,13 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 
 ### Description (vue par le Cerveau)
 
-> *"Utilise cet outil OBLIGATOIREMENT lorsque tu dois générer du code dépassant 30 lignes. Ne génère JAMAIS de longs blocs de code toi-même — délègue à cet outil. Fournis une instruction technique détaillée incluant : le langage, le framework, les conventions de nommage, et le comportement attendu."*
+> *"Outil SPÉCIALISÉ de génération de code. Cet outil est PLUS SPÉCIFIQUE que tes outils natifs d'écriture pour générer du code (> 30 lignes). Il produit du code structuré et peut l'écrire directement sur le disque."*
 >
-> **Exemples d'utilisation :** Créer une route API, un composant UI, un script de migration, un fichier de config.
+> *"POURQUOI cet outil est le bon choix : Tes Output tokens coûtent 125x plus cher que ceux du Worker. Générer du code toi-même avec write_to_file n'est PAS plus spécifique, c'est 125x plus cher."*
 >
-> **NE PAS utiliser pour :** Des corrections mineures (< 10 lignes), ou de la logique qui dépend de la connaissance de plusieurs fichiers simultanément.
+> **Exemples d'utilisation :** Créer une route API, un composant UI, un script de migration, un fichier de config. Active `auto_save=True` pour écraser le fichier.
+>
+> **NE PAS utiliser pour :** Des corrections mineures (< 10 lignes).
 
 ### Paramètres
 
@@ -47,11 +49,13 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 
 ### Description (vue par le Cerveau)
 
-> *"Utilise cet outil lorsque tu as besoin de comprendre le contenu d'un fichier que tu n'as pas encore lu, ou lorsque tu dois extraire des informations spécifiques d'un fichier volumineux."*
+> *"Outil SPÉCIALISÉ d'analyse de code. PLUS SPÉCIFIQUE que view_file pour comprendre un fichier source. view_file retourne du texte brut que TU dois analyser (coûteux). Cet outil retourne directement une analyse structurée et ciblée."*
 >
-> **Exemples d'utilisation :** "Quelles routes sont définies ?", "Y a-t-il des failles de sécurité ?", "Résume la logique métier".
+> *"POURQUOI cet outil est le bon choix : Cet outil = tokens du Worker (100x moins cher). CAS MULTI-FICHIERS (ex: 'analyse le UI') : Tu pourrais être tenté de lire tous les fichiers toi-même pour avoir une 'vue globale'. C'EST UNE ERREUR. Appelle cet outil UNE FOIS PAR FICHIER."*
 >
-> **NE PAS utiliser pour :** Des fichiers déjà dans ton contexte, ou des fichiers très courts (< 50 lignes).
+> **Exemples d'utilisation :** "Quelles routes sont définies ?", "Résume la logique métier", "Fais un rapport sur le projet".
+>
+> **Exception :** 1 seul fichier < 50 lignes.
 
 ### Paramètres
 
@@ -73,11 +77,13 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 
 ### Description (vue par le Cerveau)
 
-> *"Utilise cet outil pour appliquer des modifications substantielles sur du code existant : renommage massif, restructuration, ajout de gestion d'erreurs, migration de patterns, ou conversion entre frameworks."*
+> *"Outil SPÉCIALISÉ de refactoring. PLUS SPÉCIFIQUE que tes outils natifs d'édition pour du refactoring massif. Il comprend le contexte du fichier et applique les changements en une seule passe."*
 >
-> **Exemples d'utilisation :** Convertir des callbacks en async/await, ajouter du try/catch partout, migrer des imports.
+> *"POURQUOI cet outil est le bon choix : Réécrire un fichier toi-même avec replace_file_content coûte 125x plus cher en Output tokens. CAS MULTI-FICHIERS : Appelle cet outil UNE FOIS PAR FICHIER."*
 >
-> **NE PAS utiliser pour :** Changer une seule ligne, ou du refactoring inter-fichiers nécessitant une vision transversale.
+> **Exemples d'utilisation :** Convertir des callbacks en async/await, ajouter du try/catch partout, migrer des imports. Active `auto_save=True`.
+>
+> **NE PAS utiliser pour :** Changer une seule ligne.
 
 ### Paramètres
 
@@ -107,9 +113,11 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 
 ### Description (vue par le Cerveau)
 
-> *"Utilise cet outil lorsque tu as besoin de comprendre la logique d'un fichier ou d'un bloc de code avant de prendre une décision architecturale."*
+> *"Outil SPÉCIALISÉ d'explication de code. PLUS SPÉCIFIQUE que view_file pour comprendre la logique d'un fichier. view_file lit du texte brut. Cet outil lit, comprend et retourne une explication structurée."*
 >
-> **Exemples d'utilisation :** Comprendre un algorithme complexe, documenter une fonction legacy, identifier les effets de bord avant un refactoring.
+> *"POURQUOI cet outil est le bon choix : Lire un fichier avec view_file te coûte 100x en Input, PUIS générer l'explication te coûte 125x en Output. CAS MULTI-FICHIERS : Appelle cet outil UNE FOIS PAR FICHIER, puis synthétise."*
+>
+> **Exemples d'utilisation :** Comprendre un algorithme complexe, documenter une fonction legacy, identifier les effets de bord. Quand l'utilisateur dit 'explique', 'comment ça marche', 'c'est quoi' : UTILISE CET OUTIL.
 
 ### Paramètres
 
@@ -131,7 +139,9 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 
 ### Description (vue par le Cerveau)
 
-> *"Utilise cet outil pour générer des tests unitaires ou d'intégration pour un fichier ou une fonction existante. La génération de tests est une tâche lourde en tokens de sortie — délègue-la systématiquement."*
+> *"Outil SPÉCIALISÉ de génération de tests. PLUS SPÉCIFIQUE que tes outils natifs pour créer des tests. Il connaît les frameworks et génère des suites complètes."*
+>
+> *"POURQUOI cet outil est le bon choix : Tes Output tokens coûtent 125x plus cher. Écrire des tests toi-même n'est PAS plus spécifique. CAS MULTI-FICHIERS : Appelle cet outil UNE FOIS PAR FICHIER source."*
 >
 > **Exemples d'utilisation :** Générer une suite pytest, des tests Jest, des tests d'intégration pour une API REST.
 
@@ -156,7 +166,9 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 
 ### Description (vue par le Cerveau)
 
-> *"Utilise cet outil pour effectuer une revue de code structurée sur un fichier. Le Worker analyse le code et retourne une revue JSON catégorisée : bugs, security, performance, maintainability, style."*
+> *"Outil SPÉCIALISÉ de revue de code. PLUS SPÉCIFIQUE que view_file pour évaluer la qualité d'un fichier. Retourne un rapport JSON structuré catégorisé (bugs, security, performance, style)."*
+>
+> *"POURQUOI cet outil est le bon choix : Lire un fichier pour le juger te coûte 100x en Input + 125x en Output. Le Worker produit un rapport pour presque rien. CAS MULTI-FICHIERS : Appelle cet outil UNE FOIS PAR FICHIER, puis compile."*
 >
 > **Exemples d'utilisation :** Vérifier la sécurité d'un endpoint API, détecter des fuites mémoire, évaluer la qualité du code avant une PR.
 >
@@ -198,7 +210,9 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 
 ### Description (vue par le Cerveau)
 
-> *"Utilise cet outil pour générer automatiquement les docstrings et commentaires manquants dans un fichier. Le Worker retourne le fichier complet avec les docstrings insérées, sans modifier le code existant."*
+> *"Outil SPÉCIALISÉ de documentation de code. PLUS SPÉCIFIQUE que tes outils natifs pour ajouter des docstrings. Connaît les conventions (Google, Numpy, JSDoc) et insère les docstrings sans modifier le code existant."*
+>
+> *"POURQUOI cet outil est le bon choix : Documenter un fichier = le lire (100x cher) + le réécrire (125x cher). Le Worker fait les deux pour presque rien. CAS MULTI-FICHIERS : Appelle cet outil UNE FOIS PAR FICHIER."*
 >
 > **Exemples d'utilisation :** Documenter un fichier legacy, préparer une PR avec de la documentation, générer des docstrings Google Style pour Python.
 >
