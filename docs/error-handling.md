@@ -62,6 +62,10 @@ Le système utilise un **backoff exponentiel** avec les paramètres suivants :
 - **Tentative 3** échoue → attente de 4s → retry
 - **Échec final** → le MCP retourne un message d'erreur structuré au Cerveau
 
+### Traçabilité des retries
+
+Quand `with_retry` obtient une réponse réussie après au moins un échec, elle marque la `WorkerResponse` avec le champ `retry_count` (nombre de tentatives supplémentaires avant succès). Cette information est remontée jusqu'aux métriques de session (`total_retries` global + `retries` par outil), ce qui permet d'observer les zones instables sans devoir lire les logs.
+
 ---
 
 ## Stratégie de Fallback
@@ -82,9 +86,15 @@ Le Cerveau peut alors décider de :
 
 ### Option B : Provider de secours (optionnel)
 
-Si les variables `WORKER_FALLBACK_*` sont configurées dans le `.env`, le MCP bascule automatiquement vers un provider alternatif avant de retourner une erreur.
+Si les variables `WORKER_FALLBACK_*` sont configurées dans le `.env`, le serveur enveloppe le provider principal dans un `CompositeProvider` qui bascule **automatiquement et de façon transparente** vers le provider alternatif dès que le principal lève une `WorkerError`. Le reste du code n'a pas conscience de cette bascule — il continue de parler à un `WorkerProvider` unique.
 
 **Exemple typique :** Provider principal = API cloud, provider de secours = modèle local Ollama. Si le cloud est indisponible, le travail continue localement (plus lent mais sans interruption).
+
+### Traçabilité des bascules
+
+Quand le composite bascule sur le fallback, il marque la `WorkerResponse` avec `used_fallback=True`. Cette information est remontée aux métriques (`total_fallbacks` global + `fallbacks` par outil), ce qui permet de repérer les périodes de dégradation du provider principal.
+
+Voir [provider-adapters.md — §5 CompositeProvider](provider-adapters.md#5-compositeprovider--bascule-automatique-primaire--fallback) pour l'implémentation.
 
 ---
 

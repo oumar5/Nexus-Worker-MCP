@@ -48,6 +48,10 @@ Quel que soit le fournisseur, la réponse est toujours normalisée dans un forma
 | `model` | Nom du modèle utilisé |
 | `latency_ms` | Temps de réponse en millisecondes |
 | `raw_response` | Réponse brute du provider (pour debug uniquement) |
+| `retry_count` | Nombre de tentatives supplémentaires effectuées avant succès (0 si passé du premier coup) |
+| `used_fallback` | `True` si la réponse provient du provider de secours au lieu du principal |
+
+Les champs `retry_count` et `used_fallback` sont remplis automatiquement par la couche de résilience (voir `CompositeProvider` ci-dessous et `with_retry` dans [error-handling.md](error-handling.md)). Ils remontent ensuite dans les métriques de session.
 
 ---
 
@@ -103,6 +107,33 @@ WORKER_MODEL_NAME=gemini-2.0-flash
 - Modèles recommandés pour le Worker : `gemini-2.0-flash` (rapide, économique), `gemini-1.5-flash`
 - La clé est obtenue gratuitement sur [Google AI Studio](https://aistudio.google.com/)
 - Très faible coût — idéal comme Worker économique
+
+### 5. CompositeProvider — bascule automatique primaire → fallback
+
+**Rôle :** Wrapper transparent qui combine un provider **principal** et un provider de **secours** en respectant l'interface `WorkerProvider`. Le reste du code (outils, serveur) ne le distingue pas d'un provider simple.
+
+**Comportement :**
+- `complete()` appelle d'abord le provider principal. Si celui-ci lève une `WorkerError`, le composite bascule automatiquement sur le fallback et marque la réponse avec `used_fallback=True`.
+- `health_check()` retourne `True` si **au moins un** des deux providers répond.
+- `get_info()` retourne les infos du principal enrichies d'une clé `fallback` avec les infos du secours.
+
+**Quand est-il utilisé ?** Uniquement si les variables `WORKER_FALLBACK_*` sont définies dans le `.env`. Dans le cas contraire, le serveur utilise directement le provider principal, sans wrapper. Le composite est donc **strictement opt-in**.
+
+**Configuration minimale :**
+
+```env
+# Principal
+WORKER_PROVIDER=openai
+WORKER_API_KEY=sk-...
+WORKER_MODEL_NAME=gpt-4o-mini
+
+# Fallback (optionnel — active le CompositeProvider)
+WORKER_FALLBACK_PROVIDER=ollama
+WORKER_FALLBACK_API_BASE_URL=http://localhost:11434
+WORKER_FALLBACK_MODEL_NAME=qwen2.5-coder
+```
+
+Voir la stratégie complète dans [error-handling.md](error-handling.md).
 
 ---
 

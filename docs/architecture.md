@@ -297,7 +297,7 @@ Le choix de l'adaptateur est fait automatiquement via un **Factory Pattern** bas
 | Service | Rôle |
 |---|---|
 | **PromptEngine** | Sélectionne et formate le template de prompt approprié selon le type de tâche. Les templates sont des fichiers Markdown stockés séparément. |
-| **ErrorHandler** | Gère les retries avec backoff exponentiel, les timeouts, les fallbacks vers un provider de secours, et la protection anti-boucle infinie. |
+| **ErrorHandler** | Gère les retries avec backoff exponentiel, les timeouts et la protection anti-boucle infinie. Les bascules vers le provider de secours sont déléguées au `CompositeProvider` (voir [provider-adapters.md](provider-adapters.md#5-compositeprovider--bascule-automatique-primaire--fallback)) — ce dernier est instancié uniquement si un fallback est configuré dans le `.env`. |
 | **MetricsCollector** | Comptabilise les tokens consommés (input/output), le temps de réponse, le taux de succès par outil, et le nombre d'appels par session. |
 | **ResultCache** | Cache en mémoire avec TTL configurable. Élimine les appels redondants sur le même fichier non modifié. |
 | **Logger** | Journal structuré de tous les appels pour le diagnostic, avec niveau configurable. |
@@ -337,6 +337,7 @@ Nexus-Worker-MCP/
 │       │   ├── gemini_.py        # Google Gemini
 │       │   ├── anthropic_.py     # Anthropic Claude
 │       │   ├── ollama_.py        # Modèles locaux
+│       │   ├── fallback.py       # CompositeProvider (bascule primaire → fallback)
 │       │   └── factory.py        # Factory d'instanciation
 │       │
 │       ├── prompts/              # Templates de prompts système
@@ -379,7 +380,7 @@ Nexus-Worker-MCP/
 6. **Le PromptEngine** sélectionne le template de prompt adapté (ex: `generate.md`) et y injecte l'instruction et le contexte
 7. **Le Provider Adapter** formule la requête API selon le fournisseur configuré et l'envoie au Worker
 8. **Le Worker** traite la demande et retourne le résultat
-9. **L'ErrorHandler** vérifie le résultat — en cas d'erreur, il déclenche un retry avec backoff exponentiel ou un fallback vers un provider de secours
+9. **L'ErrorHandler** vérifie le résultat — en cas d'erreur, il déclenche un retry avec backoff exponentiel. Si un provider de secours est configuré, la bascule est prise en charge par le `CompositeProvider` (transparent pour l'outil appelant).
 10. **Les Metrics** enregistrent les statistiques de l'appel (tokens, latence, statut)
 11. **Le Transport Layer** renvoie le résultat épuré au Cerveau
 12. **Le Cerveau** lit le code généré (opération peu coûteuse en tokens d'entrée), valide la cohérence, et présente le résultat à l'utilisateur

@@ -159,16 +159,18 @@ Sur une session de développement avec 30 % de requêtes répétées, le cache r
 
 ## 5. Mesurer vos économies en temps réel
 
-Nexus expose un outil `worker_get_metrics` qui retourne un rapport d'utilisation de la session en cours. Il fournit les données brutes pour calculer les économies.
+Nexus expose un outil `worker_get_metrics` qui retourne un rapport d'utilisation de la session en cours. Il fournit les données brutes pour calculer les économies — **le serveur ne calcule aucun prix**, cette conversion revient à la couche appelante (voir §1 pour les tarifs de référence) qui applique sa propre grille.
 
 Il retourne notamment :
 
 - Le nombre total de tokens délégués au Worker (input et output séparés)
 - Le nombre total d'appels et la latence moyenne
 - Le taux de succès par outil
+- Le nombre de retries et de bascules vers le provider de secours (`total_retries`, `total_fallbacks`, ainsi que le détail par outil)
+- L'agrégation des tokens **par modèle** (`by_model`), utile quand plusieurs Workers sont utilisés dans la même session (ex : Azure GPT-4o en principal, Ollama local en fallback)
 - Le taux de cache hits (proportion d'appels servis depuis le cache)
 
-Pour l'appeler, demandez simplement au Cerveau en fin de session : *"Affiche-moi le rapport FinOps de la session."*
+Pour l'appeler, demandez simplement au Cerveau en fin de session : *"Affiche-moi le rapport FinOps de la session."* Le format complet du JSON retourné est documenté dans [tools-reference.md — §8](tools-reference.md#8-worker_get_metrics).
 
 ---
 

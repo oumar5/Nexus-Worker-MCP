@@ -2,7 +2,7 @@
 
 Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle principal (le Cerveau). Les **descriptions** sont le mécanisme central qui indique au Cerveau **quand** et **comment** déléguer au Worker.
 
-> Les descriptions ci-dessous sont volontairement longues et directives. C'est intentionnel : elles agissent comme des **instructions système** pour le Cerveau. Ne les raccourcissez pas.
+> Les descriptions ci-dessous sont volontairement concises et factuelles. Elles décrivent ce que l'outil fait, quand l'appeler et comment le paramétrer — sans slogan marketing ni chiffres de coût codés en dur (qui varient selon les modèles utilisés). Le calcul économique est laissé à la couche appelante.
 
 ---
 
@@ -12,13 +12,11 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 
 ### Description (vue par le Cerveau)
 
-> *"Outil SPÉCIALISÉ de génération de code. Cet outil est PLUS SPÉCIFIQUE que tes outils natifs d'écriture pour générer du code (> 30 lignes). Il produit du code structuré et peut l'écrire directement sur le disque."*
+> *"Génère du code via le Worker économique. À utiliser pour produire plus de ~30 lignes de code. Renvoie le code structuré et peut l'écrire sur disque."*
 >
-> *"POURQUOI cet outil est le bon choix : Tes Output tokens coûtent 125x plus cher que ceux du Worker. Générer du code toi-même avec write_to_file n'est PAS plus spécifique, c'est 125x plus cher."*
+> *"Option `auto_save=True` : le Worker écrit directement le fichier ; tu n'as plus qu'à relire et corriger si besoin."*
 >
-> **Exemples d'utilisation :** Créer une route API, un composant UI, un script de migration, un fichier de config. Active `auto_save=True` pour écraser le fichier.
->
-> **NE PAS utiliser pour :** Des corrections mineures (< 10 lignes).
+> **NE PAS utiliser pour :** Des ajouts/corrections de moins de ~10 lignes.
 
 ### Paramètres
 
@@ -49,13 +47,13 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 
 ### Description (vue par le Cerveau)
 
-> *"Outil SPÉCIALISÉ d'analyse de code. PLUS SPÉCIFIQUE que view_file pour comprendre un fichier source. view_file retourne du texte brut que TU dois analyser (coûteux). Cet outil retourne directement une analyse structurée et ciblée."*
+> *"Analyse un fichier source via le Worker et renvoie une analyse structurée et compacte, plutôt que le texte brut du fichier."*
 >
-> *"POURQUOI cet outil est le bon choix : Cet outil = tokens du Worker (100x moins cher). CAS MULTI-FICHIERS (ex: 'analyse le UI') : Tu pourrais être tenté de lire tous les fichiers toi-même pour avoir une 'vue globale'. C'EST UNE ERREUR. Appelle cet outil UNE FOIS PAR FICHIER."*
+> *"Déclencheurs : 'analyse', 'résume', 'fais un rapport', 'audit'."*
 >
-> **Exemples d'utilisation :** "Quelles routes sont définies ?", "Résume la logique métier", "Fais un rapport sur le projet".
+> *"Multi-fichiers (ex : 'analyse le module UI') : appeler une fois par fichier, chaque appel renvoie un résumé compact, puis synthétiser les résumés pour le rapport global. Ne pas lire tous les fichiers soi-même."*
 >
-> **Exception :** 1 seul fichier < 50 lignes.
+> **Exception :** un seul fichier de moins de ~50 lignes.
 
 ### Paramètres
 
@@ -69,6 +67,8 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 
 `status`, `analysis`, `file_info`, `tokens_used`, `model`
 
+> **Note :** Les résultats sont mis en cache (TTL configurable). Un deuxième appel avec les mêmes contenus et prompt est instantané.
+
 ---
 
 ## 3. `worker_refactor_code`
@@ -77,11 +77,11 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 
 ### Description (vue par le Cerveau)
 
-> *"Outil SPÉCIALISÉ de refactoring. PLUS SPÉCIFIQUE que tes outils natifs d'édition pour du refactoring massif. Il comprend le contexte du fichier et applique les changements en une seule passe."*
+> *"Refactorise un fichier via le Worker en une seule passe, en tenant compte de son contexte. À utiliser pour un refactoring qui touche de nombreuses lignes."*
 >
-> *"POURQUOI cet outil est le bon choix : Réécrire un fichier toi-même avec replace_file_content coûte 125x plus cher en Output tokens. CAS MULTI-FICHIERS : Appelle cet outil UNE FOIS PAR FICHIER."*
+> *"Multi-fichiers (ex : 'refactorise tout le module') : appeler une fois par fichier."*
 >
-> **Exemples d'utilisation :** Convertir des callbacks en async/await, ajouter du try/catch partout, migrer des imports. Active `auto_save=True`.
+> *"Option `auto_save=True` : écriture directe sur disque."*
 >
 > **NE PAS utiliser pour :** Changer une seule ligne.
 
@@ -113,11 +113,13 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 
 ### Description (vue par le Cerveau)
 
-> *"Outil SPÉCIALISÉ d'explication de code. PLUS SPÉCIFIQUE que view_file pour comprendre la logique d'un fichier. view_file lit du texte brut. Cet outil lit, comprend et retourne une explication structurée."*
+> *"Explique la logique d'un fichier via le Worker et renvoie une explication structurée, plutôt que le code brut."*
 >
-> *"POURQUOI cet outil est le bon choix : Lire un fichier avec view_file te coûte 100x en Input, PUIS générer l'explication te coûte 125x en Output. CAS MULTI-FICHIERS : Appelle cet outil UNE FOIS PAR FICHIER, puis synthétise."*
+> *"Déclencheurs : 'explique', 'comment ça marche', 'c'est quoi'."*
 >
-> **Exemples d'utilisation :** Comprendre un algorithme complexe, documenter une fonction legacy, identifier les effets de bord. Quand l'utilisateur dit 'explique', 'comment ça marche', 'c'est quoi' : UTILISE CET OUTIL.
+> *"Multi-fichiers (ex : 'explique comment marche le UI') : appeler une fois par fichier, puis synthétiser les réponses."*
+>
+> *"Paramètre `detail_level` : `'summary'`, `'detailed'` (défaut) ou `'line-by-line'`."*
 
 ### Paramètres
 
@@ -131,6 +133,8 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 
 `status`, `explanation`, `file_info`, `tokens_used`, `model`
 
+> **Note :** Les résultats sont mis en cache (TTL configurable).
+
 ---
 
 ## 5. `worker_generate_tests`
@@ -139,11 +143,11 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 
 ### Description (vue par le Cerveau)
 
-> *"Outil SPÉCIALISÉ de génération de tests. PLUS SPÉCIFIQUE que tes outils natifs pour créer des tests. Il connaît les frameworks et génère des suites complètes."*
+> *"Génère une suite de tests pour un fichier via le Worker, avec setup, teardown et cas limites. Connaît les frameworks courants (pytest, Jest, etc.)."*
 >
-> *"POURQUOI cet outil est le bon choix : Tes Output tokens coûtent 125x plus cher. Écrire des tests toi-même n'est PAS plus spécifique. CAS MULTI-FICHIERS : Appelle cet outil UNE FOIS PAR FICHIER source."*
+> *"Multi-fichiers (ex : 'génère des tests pour tout le module') : appeler une fois par fichier source."*
 >
-> **Exemples d'utilisation :** Générer une suite pytest, des tests Jest, des tests d'intégration pour une API REST.
+> *"Paramètres : `test_framework` (défaut `'pytest'`), `focus_functions`, `coverage_level`."*
 
 ### Paramètres
 
@@ -160,19 +164,19 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 
 ---
 
-## 6. `worker_review_code` ✨ Nouveau
+## 6. `worker_review_code`
 
 **Objectif :** Effectuer une revue de code structurée et catégorisée.
 
 ### Description (vue par le Cerveau)
 
-> *"Outil SPÉCIALISÉ de revue de code. PLUS SPÉCIFIQUE que view_file pour évaluer la qualité d'un fichier. Retourne un rapport JSON structuré catégorisé (bugs, security, performance, style)."*
+> *"Fait une revue de code d'un fichier via le Worker et renvoie un rapport JSON structuré (bugs, sécurité, performance, style)."*
 >
-> *"POURQUOI cet outil est le bon choix : Lire un fichier pour le juger te coûte 100x en Input + 125x en Output. Le Worker produit un rapport pour presque rien. CAS MULTI-FICHIERS : Appelle cet outil UNE FOIS PAR FICHIER, puis compile."*
+> *"Déclencheurs : 'vérifie', 'revue', 'bugs', 'audit'."*
 >
-> **Exemples d'utilisation :** Vérifier la sécurité d'un endpoint API, détecter des fuites mémoire, évaluer la qualité du code avant une PR.
+> *"Multi-fichiers (ex : 'audit du projet') : appeler une fois par fichier, puis compiler les rapports JSON."*
 >
-> **Paramètre `focus` optionnel :** `"security"`, `"performance"`, `"bugs"`, etc.
+> *"Paramètre `focus` optionnel : `'security'`, `'performance'`, `'bugs'`, etc."*
 
 ### Paramètres
 
@@ -200,23 +204,23 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 }
 ```
 
-> **Note :** Les résultats sont mis en cache (TTL 1h). Un deuxième appel sur le même fichier non modifié est instantané et gratuit.
+> **Note :** Les résultats sont mis en cache (TTL configurable). Un deuxième appel sur le même fichier non modifié est instantané.
 
 ---
 
-## 7. `worker_document_code` ✨ Nouveau
+## 7. `worker_document_code`
 
 **Objectif :** Générer automatiquement les docstrings et commentaires manquants.
 
 ### Description (vue par le Cerveau)
 
-> *"Outil SPÉCIALISÉ de documentation de code. PLUS SPÉCIFIQUE que tes outils natifs pour ajouter des docstrings. Connaît les conventions (Google, Numpy, JSDoc) et insère les docstrings sans modifier le code existant."*
+> *"Ajoute des docstrings à un fichier via le Worker, sans modifier la logique du code. Connaît les conventions (Google, Numpy, JSDoc)."*
 >
-> *"POURQUOI cet outil est le bon choix : Documenter un fichier = le lire (100x cher) + le réécrire (125x cher). Le Worker fait les deux pour presque rien. CAS MULTI-FICHIERS : Appelle cet outil UNE FOIS PAR FICHIER."*
+> *"Déclencheurs : 'documente', 'ajoute des docstrings', 'commente le code'."*
 >
-> **Exemples d'utilisation :** Documenter un fichier legacy, préparer une PR avec de la documentation, générer des docstrings Google Style pour Python.
+> *"Multi-fichiers (ex : 'documente tout le projet') : appeler une fois par fichier."*
 >
-> **Paramètre `style` optionnel :** `"google"`, `"numpy"`, `"jsdoc"`, etc.
+> *"Paramètre `style` optionnel : `'google'`, `'numpy'`, `'jsdoc'`, etc."*
 
 ### Paramètres
 
@@ -229,38 +233,58 @@ Ce document détaille chaque outil (Tool) exposé par le serveur MCP au modèle 
 
 `status`, `documented_code`, `file_info`, `tokens_used`, `model`
 
-> **Note :** Les résultats sont mis en cache (TTL 1h).
+> **Note :** Les résultats sont mis en cache (TTL configurable).
 
 ---
 
-## 8. `worker_get_metrics` ✨ Nouveau
+## 8. `worker_get_metrics`
 
 **Objectif :** Obtenir un rapport des métriques de la session en cours.
 
 ### Description (vue par le Cerveau)
 
-> *"Obtient les métriques pour la session en cours, incluant l'utilisation des tokens, les latences, et les statistiques du cache."*
+> *"Obtient les métriques pour la session en cours, incluant l'utilisation des tokens par outil et par modèle, les latences, le nombre de retries, les bascules fallback et les statistiques du cache."*
 >
 > Appelle cet outil en fin de session ou à tout moment pour mesurer l'activité du Worker.
-
-### worker_get_metrics
-
-Obtient les métriques pour la session en cours, incluant l'utilisation des tokens, les latences, et les statistiques du cache.
 
 ### Paramètres
 *(Aucun paramètre requis)*
 
 ### Retour
+
+Le serveur rapporte des **faits bruts** (tokens par modèle, retries, fallbacks) sans calculer de prix. La conversion en coût est laissée à la couche appelante (Cerveau ou dashboard externe), car les tarifs varient selon les modèles utilisés.
+
 ```json
 {
   "status": "success",
   "metrics": {
+    "enabled": true,
     "total_calls": 5,
     "successful_calls": 5,
     "failed_calls": 0,
     "total_tokens_input": 4500,
     "total_tokens_output": 1200,
-    "avg_latency_ms": 1250.5
+    "total_retries": 1,
+    "total_fallbacks": 0,
+    "avg_latency_ms": 1250.5,
+    "tools": {
+      "worker_analyze_file": {
+        "calls": 3,
+        "success_rate": 100.0,
+        "tokens_input": 3000,
+        "tokens_output": 800,
+        "retries": 1,
+        "fallbacks": 0
+      }
+    },
+    "by_model": {
+      "gpt-4o": {
+        "calls": 5,
+        "tokens_input": 4500,
+        "tokens_output": 1200,
+        "total_tokens": 5700
+      }
+    }
   },
   "cache": {
     "hits": 2,
@@ -283,7 +307,7 @@ Obtient les métriques pour la session en cours, incluant l'utilisation des toke
 | Écrire des tests | → `worker_generate_tests` |
 | Évaluer la qualité / sécurité du code | → `worker_review_code` |
 | Ajouter des docstrings | → `worker_document_code` |
-| Mesurer les économies de la session | → `worker_get_metrics` |
+| Mesurer l'activité de la session | → `worker_get_metrics` |
 | Corriger 1-5 lignes | → **Agir seul** |
 | Décision d'architecture | → **Agir seul** |
 | Planification du travail | → **Agir seul** |
