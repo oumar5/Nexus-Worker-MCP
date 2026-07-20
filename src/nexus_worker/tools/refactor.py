@@ -102,6 +102,7 @@ async def worker_refactor_code(
             success=True,
             was_retry=response.retry_count > 0,
             was_fallback=response.used_fallback,
+            model=response.model,
         )
 
         result_dict = {

@@ -100,6 +100,7 @@ async def worker_generate_tests(
             success=True,
             was_retry=response.retry_count > 0,
             was_fallback=response.used_fallback,
+            model=response.model,
         )
 
         return json.dumps(

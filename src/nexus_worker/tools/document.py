@@ -98,6 +98,7 @@ async def worker_document_code(
             success=True,
             was_retry=response.retry_count > 0,
             was_fallback=response.used_fallback,
+            model=response.model,
         )
 
         result = json.dumps(

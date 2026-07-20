@@ -77,6 +77,34 @@ def test_metrics_tracks_retries_and_fallbacks():
     assert tool_stats["fallbacks"] == 1
 
 
+def test_metrics_tracks_usage_by_model():
+    """Test que la consommation est agregee par modele Worker."""
+    metrics = MetricsCollector(enabled=True)
+    # Deux appels sur gpt-4o, un sur ollama
+    metrics.record_call("analyze", tokens_input=100, tokens_output=50, model="gpt-4o")
+    metrics.record_call("review", tokens_input=200, tokens_output=80, model="gpt-4o")
+    metrics.record_call("explain", tokens_input=60, tokens_output=40, model="ollama/codellama")
+
+    by_model = metrics.get_summary()["by_model"]
+
+    assert by_model["gpt-4o"]["calls"] == 2
+    assert by_model["gpt-4o"]["tokens_input"] == 300
+    assert by_model["gpt-4o"]["tokens_output"] == 130
+    assert by_model["gpt-4o"]["total_tokens"] == 430
+    assert by_model["ollama/codellama"]["calls"] == 1
+    assert by_model["ollama/codellama"]["total_tokens"] == 100
+
+
+def test_metrics_by_model_ignores_failures_and_empty_model():
+    """Un echec ou un modele vide ne doit pas polluer l'agregat par modele."""
+    metrics = MetricsCollector(enabled=True)
+    metrics.record_call("analyze", success=False, model="gpt-4o")  # echec
+    metrics.record_call("review", tokens_input=10, tokens_output=5, model="")  # pas de modele
+
+    by_model = metrics.get_summary()["by_model"]
+    assert by_model == {}
+
+
 def test_metrics_reset():
     """Test la reinitialisation des metriques."""
     metrics = MetricsCollector(enabled=True)

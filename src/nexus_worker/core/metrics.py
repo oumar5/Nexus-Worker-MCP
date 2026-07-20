@@ -12,6 +12,24 @@ from typing import Any
 
 
 @dataclass
+class ModelUsage:
+    """Consommation de tokens agrégée pour un modèle Worker donné.
+
+    Permet au Cerveau de calculer les coûts par modèle en appliquant
+    lui-même sa grille tarifaire (le serveur ne connaît pas les prix).
+    """
+
+    calls: int = 0
+    total_tokens_input: int = 0
+    total_tokens_output: int = 0
+
+    @property
+    def total_tokens(self) -> int:
+        """Nombre total de tokens consommés (input + output)."""
+        return self.total_tokens_input + self.total_tokens_output
+
+
+@dataclass
 class ToolMetrics:
     """Métriques agrégées pour un outil spécifique."""
 
@@ -50,6 +68,7 @@ class SessionMetrics:
 
     session_start: float = field(default_factory=time.time)
     tools: dict[str, ToolMetrics] = field(default_factory=dict)
+    models: dict[str, ModelUsage] = field(default_factory=dict)
 
     def _ensure_tool(self, tool_name: str) -> ToolMetrics:
         """Crée les métriques pour un outil s'il n'existe pas encore.
@@ -63,6 +82,19 @@ class SessionMetrics:
         if tool_name not in self.tools:
             self.tools[tool_name] = ToolMetrics()
         return self.tools[tool_name]
+
+    def _ensure_model(self, model: str) -> ModelUsage:
+        """Crée l'agrégat de consommation d'un modèle s'il n'existe pas encore.
+
+        Args:
+            model: Nom du modèle Worker (ex: "gpt-4o-2024-05-13").
+
+        Returns:
+            L'instance ModelUsage pour ce modèle.
+        """
+        if model not in self.models:
+            self.models[model] = ModelUsage()
+        return self.models[model]
 
     @property
     def total_tokens_input(self) -> int:
@@ -120,6 +152,7 @@ class MetricsCollector:
         success: bool = True,
         was_retry: bool = False,
         was_fallback: bool = False,
+        model: str = "",
     ) -> None:
         """Enregistre les métriques d'un appel d'outil.
 
@@ -131,6 +164,8 @@ class MetricsCollector:
             success: True si l'appel a réussi.
             was_retry: True si c'était un retry après échec.
             was_fallback: True si le fallback provider a été utilisé.
+            model: Nom du modèle Worker ayant traité l'appel. Sert à agréger
+                   la consommation par modèle pour le calcul des coûts.
         """
         if not self.enabled:
             return
@@ -151,6 +186,14 @@ class MetricsCollector:
         if was_fallback:
             tool.fallback_count += 1
 
+        # Agréger la consommation par modèle (uniquement sur succès :
+        # un échec n'a pas de tokens ni de modèle fiables à attribuer).
+        if success and model:
+            usage = self.session._ensure_model(model)
+            usage.calls += 1
+            usage.total_tokens_input += tokens_input
+            usage.total_tokens_output += tokens_output
+
     def get_summary(self) -> dict[str, Any]:
         """Retourne un résumé complet des métriques de la session.
 
@@ -169,6 +212,7 @@ class MetricsCollector:
             "total_retries": self.session.total_retries,
             "total_fallbacks": self.session.total_fallbacks,
             "tools": {},
+            "by_model": {},
         }
 
         for name, tool in self.session.tools.items():
@@ -180,6 +224,16 @@ class MetricsCollector:
                 "avg_latency_ms": round(tool.average_latency_ms, 1),
                 "retries": tool.retries_count,
                 "fallbacks": tool.fallback_count,
+            }
+
+        # Consommation par modèle : le Cerveau applique sa propre grille
+        # tarifaire sur ces tokens bruts pour estimer les coûts/économies.
+        for model_name, usage in self.session.models.items():
+            summary["by_model"][model_name] = {
+                "calls": usage.calls,
+                "tokens_input": usage.total_tokens_input,
+                "tokens_output": usage.total_tokens_output,
+                "total_tokens": usage.total_tokens,
             }
 
         return summary
