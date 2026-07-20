@@ -72,6 +72,8 @@ class TestWorkerDocumentCode:
         documented = '"""Module doc."""\n\ndef foo():\n    """Do foo."""\n    pass'
         mock_read_file_safe.return_value = ("def foo(): pass", 1)
         mock_with_retry.return_value = MagicMock(
+            retry_count=0,
+            used_fallback=False,
             content=documented,
             model="mock-model",
             tokens_input=80,
@@ -164,6 +166,8 @@ class TestWorkerDocumentCode:
         """Le paramètre style doit être accepté sans erreur."""
         mock_read_file_safe.return_value = ("def foo(): pass", 1)
         mock_with_retry.return_value = MagicMock(
+            retry_count=0,
+            used_fallback=False,
             content="documented",
             model="m",
             tokens_input=10,

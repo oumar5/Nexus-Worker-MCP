@@ -12,6 +12,8 @@ def mock_provider():
     provider = MagicMock()
     provider.complete = AsyncMock(
         return_value=MagicMock(
+            retry_count=0,
+            used_fallback=False,
             content="refactored code",
             model="test-model",
             tokens_input=100,

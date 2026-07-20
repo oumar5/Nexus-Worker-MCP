@@ -98,6 +98,8 @@ async def worker_generate_tests(
             tokens_output=response.tokens_output,
             latency_ms=response.latency_ms,
             success=True,
+            was_retry=response.retry_count > 0,
+            was_fallback=response.used_fallback,
         )
 
         return json.dumps(

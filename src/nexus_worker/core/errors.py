@@ -114,7 +114,12 @@ async def with_retry(
 
     for attempt in range(max_retries + 1):
         try:
-            return await func()
+            result = await func()
+            # Renseigner le nombre de tentatives supplémentaires si le
+            # résultat le supporte (ex: WorkerResponse.retry_count).
+            if attempt > 0 and hasattr(result, "retry_count"):
+                result.retry_count = attempt
+            return result
 
         except FATAL_ERRORS as e:
             # Erreurs fatales : pas de retry

@@ -21,6 +21,8 @@ class WorkerResponse:
         model: Nom du modèle utilisé.
         latency_ms: Temps de réponse en millisecondes.
         raw_response: Réponse brute du provider (pour debug).
+        used_fallback: True si la réponse provient du provider de secours.
+        retry_count: Nombre de tentatives supplémentaires avant succès (0 = premier essai).
     """
 
     content: str
@@ -29,6 +31,8 @@ class WorkerResponse:
     model: str = ""
     latency_ms: float = 0
     raw_response: dict[str, Any] | None = None
+    used_fallback: bool = False
+    retry_count: int = 0
 
 
 @runtime_checkable

@@ -73,6 +73,28 @@ class TestCompositeProvider:
         assert fallback.complete_calls == 1
 
     @pytest.mark.asyncio
+    async def test_response_flags_used_fallback(self) -> None:
+        """La réponse issue du fallback est marquée used_fallback=True."""
+        primary = _StubProvider("primary", should_fail=True)
+        fallback = _StubProvider("fallback")
+        composite = CompositeProvider(primary, fallback)
+
+        response = await composite.complete("sys", "user")
+
+        assert response.used_fallback is True
+
+    @pytest.mark.asyncio
+    async def test_response_does_not_flag_fallback_on_primary_success(self) -> None:
+        """Une réponse du principal ne doit PAS être marquée comme fallback."""
+        primary = _StubProvider("primary")
+        fallback = _StubProvider("fallback")
+        composite = CompositeProvider(primary, fallback)
+
+        response = await composite.complete("sys", "user")
+
+        assert response.used_fallback is False
+
+    @pytest.mark.asyncio
     async def test_raises_when_both_fail(self) -> None:
         """L'erreur du fallback est propagée si les deux échouent."""
         primary = _StubProvider("primary", should_fail=True)

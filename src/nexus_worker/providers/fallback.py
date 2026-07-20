@@ -74,9 +74,11 @@ class CompositeProvider:
                     "fallback_provider": fb_info.get("provider"),
                 },
             )
-            return await self.fallback.complete(
+            response = await self.fallback.complete(
                 system_prompt, user_prompt, max_tokens=max_tokens, temperature=temperature
             )
+            response.used_fallback = True
+            return response
 
     async def health_check(self) -> bool:
         """Vérifie qu'au moins un des deux providers est joignable.

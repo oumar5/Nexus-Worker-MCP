@@ -80,6 +80,16 @@ class SessionMetrics:
         return sum(t.total_calls for t in self.tools.values())
 
     @property
+    def total_retries(self) -> int:
+        """Total des retries sur tous les outils."""
+        return sum(t.retries_count for t in self.tools.values())
+
+    @property
+    def total_fallbacks(self) -> int:
+        """Total des bascules sur le fallback provider, tous outils confondus."""
+        return sum(t.fallback_count for t in self.tools.values())
+
+    @property
     def session_duration_seconds(self) -> float:
         """Durée de la session en secondes."""
         return time.time() - self.session_start
@@ -156,6 +166,8 @@ class MetricsCollector:
             "total_tokens_input": self.session.total_tokens_input,
             "total_tokens_output": self.session.total_tokens_output,
             "total_tokens": self.session.total_tokens_input + self.session.total_tokens_output,
+            "total_retries": self.session.total_retries,
+            "total_fallbacks": self.session.total_fallbacks,
             "tools": {},
         }
 

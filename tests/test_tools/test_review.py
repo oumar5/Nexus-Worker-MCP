@@ -75,6 +75,8 @@ class TestWorkerReviewCode:
         )
         mock_read_file_safe.return_value = ("def foo(): pass", 1)
         mock_with_retry.return_value = MagicMock(
+            retry_count=0,
+            used_fallback=False,
             content=review_json,
             model="mock-model",
             tokens_input=100,
@@ -166,6 +168,8 @@ class TestWorkerReviewCode:
         """Une réponse Worker non-JSON doit être stockée dans raw_review."""
         mock_read_file_safe.return_value = ("code", 1)
         mock_with_retry.return_value = MagicMock(
+            retry_count=0,
+            used_fallback=False,
             content="Voici mes commentaires en texte libre...",
             model="m",
             tokens_input=10,
@@ -198,6 +202,8 @@ class TestWorkerReviewCode:
         """Doit inclure le focus dans le prompt utilisateur."""
         mock_read_file_safe.return_value = ("code", 1)
         mock_with_retry.return_value = MagicMock(
+            retry_count=0,
+            used_fallback=False,
             content=(
                 '{"summary": "ok", "bugs": [], "security": [], '
                 '"performance": [], "maintainability": [], "style": []}'

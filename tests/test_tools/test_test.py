@@ -71,6 +71,8 @@ class TestWorkerGenerateTests:
     ):
         mock_read_file_safe.return_value = (file_content, total_lines)
         mock_with_retry.return_value = MagicMock(
+            retry_count=0,
+            used_fallback=False,
             content="mock_test_code",
             model="mock_model",
             tokens_input=10,
@@ -142,6 +144,8 @@ class TestWorkerGenerateTests:
     ):
         mock_read_file_safe.return_value = ("def foo(): pass", 1)
         mock_with_retry.return_value = MagicMock(
+            retry_count=0,
+            used_fallback=False,
             content="mock_test_code",
             model="mock_model",
             tokens_input=10,

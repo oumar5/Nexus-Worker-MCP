@@ -67,6 +67,8 @@ class TestWorkerAnalyzeFileHappyPath:
     ):
         mock_read_file_safe.return_value = ("file content", 100)
         mock_with_retry.return_value = MagicMock(
+            retry_count=0,
+            used_fallback=False,
             content="analysis result",
             model="mock_model",
             tokens_input=10,
@@ -111,6 +113,8 @@ class TestWorkerAnalyzeFileEdgeCases:
     ):
         mock_read_file_safe.return_value = ("", 0)
         mock_with_retry.return_value = MagicMock(
+            retry_count=0,
+            used_fallback=False,
             content="empty analysis",
             model="mock_model",
             tokens_input=5,
@@ -153,6 +157,8 @@ class TestWorkerAnalyzeFileEdgeCases:
         large_content = "line\n" * 10000
         mock_read_file_safe.return_value = (large_content, 10000)
         mock_with_retry.return_value = MagicMock(
+            retry_count=0,
+            used_fallback=False,
             content="large analysis",
             model="mock_model",
             tokens_input=1000,
