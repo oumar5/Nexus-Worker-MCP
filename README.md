@@ -97,6 +97,7 @@ python -m nexus_worker
 ## Roadmap (v2.0)
 
 - **Tool-based Routing (Routage par Outil)** : Possibilité de configurer un modèle spécifique pour chaque outil (ex: `WORKER_GENERATE_CODE_MODEL=claude-3-5-sonnet` pour le code, et `WORKER_REVIEW_CODE_MODEL=gpt-4o-mini` pour la relecture) afin de pousser l'optimisation des coûts à son maximum.
+- **Agenticité micro (Self-Verification bornée)** : Sur les outils producteurs de code (`generate_code`, `refactor_code`, `generate_tests`), le Worker pourra valider sa propre sortie (parse/lint) et itérer 2-3 fois max pour corriger ses erreurs. **Ligne rouge** : le Worker ne lit jamais d'autres fichiers que celui fourni — l'orchestration agentique reste au Cerveau. Périmètre v1 : registre de validateurs multi-langage extensible, activation par flag `verify` par outil.
 - **Support de nouveaux providers** : Intégration de nouveaux LLMs selon les besoins de la communauté.
 
 ## Licence
